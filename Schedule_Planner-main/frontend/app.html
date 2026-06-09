@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schedule Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #111827;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: #1a1a2e;
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo { color: #fff; font-size: 17px; font-weight: 700; }
+
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+
+    .nav-user {
+      color: #c7d2fe;
+      font-size: 13px;
+    }
+
+    .nav-role {
+      background: #4f46e5;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1.5px solid #6366f1;
+      color: #c7d2fe;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-logout:hover { background: #312e81; }
+
+    /* ── Layout ── */
+    main {
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #1f2937; }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      padding: 28px 28px 24px;
+      margin-bottom: 28px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    /* ── Profile info ── */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .info-item label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .info-item span {
+      font-size: 14px;
+      color: #111827;
+    }
+
+    /* ── Forms ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .field input, .field select {
+      padding: 9px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .field input:focus, .field select:focus { border-color: #4f46e5; }
+
+    .btn-submit {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .2s;
+    }
+    .btn-submit:hover { background: #4338ca; }
+    .btn-submit:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.15);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .3s, transform .3s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .toast.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* ── Hidden ── */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Schedule Planner</div>
+  <div class="nav-right">
+    <span class="nav-user" id="navEmail">Loading…</span>
+    <span class="nav-role" id="navRole"></span>
+    <button class="btn-logout" id="logoutBtn">Sign out</button>
+  </div>
+</nav>
+
+<main>
+
+  <!-- Current User -->
+  <div class="card">
+    <div class="card-title">My Account</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <label>Email</label>
+        <span id="infoEmail">—</span>
+      </div>
+      <div class="info-item">
+        <label>Role</label>
+        <span id="infoRole">—</span>
+      </div>
+      <div class="info-item">
+        <label>Account ID</label>
+        <span id="infoId" style="font-size:12px;color:#6b7280;">—</span>
+      </div>
+      <div class="info-item">
+        <label>Employee ID</label>
+        <span id="infoEmployeeId" style="font-size:12px;color:#6b7280;">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Manager (ADMIN only) -->
+  <div class="card hidden" id="sectionCreateManager">
+    <div class="card-title">Create Manager Account</div>
+    <form id="formCreateManager">
+      <div class="form-grid">
+        <div class="field">
+          <label>First name</label>
+          <input type="text" id="mgr_firstName" required placeholder="Maria">
+        </div>
+        <div class="field">
+          <label>Last name</label>
+          <input type="text" id="mgr_lastName" required placeholder="Meyer">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="mgr_email" required placeholder="manager@restaurant.com">
+        </div>
+        <div class="field">
+          <label>Temporary password</label>
+          <input type="password" id="mgr_password" required placeholder="min. 8 characters">
+        </div>
+      </div>
+      <button type="submit" class="btn-submit">Create Manager</button>
+    </form>
+  </div>
+
+  <!-- Create Employee Account (ADMIN + MANAGER) -->
+  <div class="card hidden" id="sectionCreateEmployee">
+    <div class="card-title">Create Employee Account</div>
+    <form id="formCreateEmployee">
+      <div class="form-grid">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="emp_email" required placeholder="john.doe@restaurant.com">
+        </div>
+        <div class="field">
+          <label>Temporary password</label>
+          <input type="password" id="emp_password" required placeholder="min. 8 characters">
+        </div>
+        <div class="field full">
+          <label>Employee ID (UUID — from employee profile)</label>
+          <input type="text" id="emp_employeeId" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        </div>
+      </div>
+      <button type="submit" class="btn-submit">Create Employee Account</button>
+    </form>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── STEP 10: Replace this with your Railway URL once deployed ───────────
+  const API_BASE_URL = 'http://localhost:8080';
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'login.html';
+
+  function showToast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast ${type} show`;
+    setTimeout(() => { el.classList.remove('show'); }, 3500);
+  }
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  }
+
+  async function loadCurrentUser() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/me`, { headers: authHeaders() });
+      if (res.status === 401) { logout(); return; }
+      const user = await res.json();
+
+      document.getElementById('navEmail').textContent = user.email;
+      document.getElementById('navRole').textContent = user.systemRole;
+      document.getElementById('infoEmail').textContent = user.email;
+      document.getElementById('infoRole').textContent = user.systemRole;
+      document.getElementById('infoId').textContent = user.id;
+      document.getElementById('infoEmployeeId').textContent = user.employeeId || 'N/A (not linked to employee)';
+
+      if (user.systemRole === 'ADMIN') {
+        document.getElementById('sectionCreateManager').classList.remove('hidden');
+        document.getElementById('sectionCreateEmployee').classList.remove('hidden');
+      }
+      if (user.systemRole === 'MANAGER') {
+        document.getElementById('sectionCreateEmployee').classList.remove('hidden');
+      }
+    } catch (e) {
+      showToast('Could not load user profile.', 'error');
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  document.getElementById('formCreateManager').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/users/managers`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          firstName: document.getElementById('mgr_firstName').value.trim(),
+          lastName:  document.getElementById('mgr_lastName').value.trim(),
+          email:     document.getElementById('mgr_email').value.trim(),
+          password:  document.getElementById('mgr_password').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to create manager');
+      showToast(`Manager account created for ${data.email}`);
+      e.target.reset();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Manager';
+    }
+  });
+
+  document.getElementById('formCreateEmployee').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/users/employees`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          email:      document.getElementById('emp_email').value.trim(),
+          password:   document.getElementById('emp_password').value,
+          employeeId: document.getElementById('emp_employeeId').value.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to create employee account');
+      showToast(`Employee account created for ${data.email}`);
+      e.target.reset();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Employee Account';
+    }
+  });
+
+  loadCurrentUser();
+</script>
+</body>
+</html>

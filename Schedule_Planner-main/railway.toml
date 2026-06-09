@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "./mvnw clean package -DskipTests"
+buildCommand = "bash ./mvnw clean package -DskipTests"
 
 [deploy]
 startCommand = "java -jar target/Schedule_Planner-0.0.1-SNAPSHOT.jar"

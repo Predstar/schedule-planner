@@ -1,0 +1,10 @@
+{
+  "name": "restaurant-scheduler",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "test": "pnpm -r test"
+  }
+}

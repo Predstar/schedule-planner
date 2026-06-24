@@ -1,0 +1,171 @@
+.page {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg, #EDE3D4);
+  padding: 16px 16px 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  padding-top: 4px;
+}
+
+.pageTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2C1A0E;
+  margin: 0;
+}
+
+/* Avatar + name */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0 4px;
+  gap: 6px;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #F5DFC5;
+  color: #C2742A;
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroName {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+.heroRole {
+  font-size: 13px;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Info cards */
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.infoCard {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.infoIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #F5F0EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8C7B6B;
+  flex-shrink: 0;
+}
+
+.infoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.infoLabel {
+  font-size: 11px;
+  color: #A89B8A;
+  font-family: 'Inter', sans-serif;
+}
+
+.infoValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Hours card */
+.hoursCard {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hoursTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+.hoursRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.hoursWorked {
+  font-size: 12px;
+  color: #C2742A;
+  font-family: 'Inter', sans-serif;
+}
+
+.hoursTarget {
+  font-size: 12px;
+  color: #A89B8A;
+  font-family: 'Inter', sans-serif;
+}
+
+.progressTrack {
+  height: 6px;
+  background: #EDE3D4;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #C2742A;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* Sign out */
+.signOutBtn {
+  margin-top: 4px;
+  background: none;
+  border: 1.5px solid #D4B89A;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.signOutBtn:hover {
+  background: #F5EFE8;
+}

@@ -1,0 +1,43 @@
+.nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0 28px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.iconWrap svg {
+  width: 24px;
+  height: 24px;
+  stroke: inherit;
+}
+
+.label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.active .label {
+  color: var(--accent);
+}

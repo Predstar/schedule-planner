@@ -1,26 +1,30 @@
-const frontendAreas = ['Auth', 'Users', 'Employees', 'Availability', 'Shifts', 'Schedules'];
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LoginPage } from '../features/auth/pages/LoginPage';
+import { ManagerDashboardPage } from '../features/schedules/pages/ManagerDashboardPage';
+import { ManagerTeamPage } from '../features/employees/pages/ManagerTeamPage';
 
 export function App() {
   return (
-    <main className="app-shell">
-      <section className="hero">
-        <p className="eyebrow">Restaurant Scheduler MVP</p>
-        <h1>Separated frontend and backend structure for the scheduling MVP.</h1>
-        <p className="lede">
-          The frontend is now a thin React application that will communicate
-          only with the NestJS backend API. Business logic, authentication, and
-          scheduling rules belong to the backend.
-        </p>
-      </section>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
 
-      <section className="modules">
-        {frontendAreas.map((moduleName) => (
-          <article key={moduleName} className="module-card">
-            <h2>{moduleName}</h2>
-            <p>Frontend feature area scaffolded for API-driven implementation.</p>
-          </article>
-        ))}
-      </section>
-    </main>
+        {/* Manager routes */}
+        <Route path="/manager/schedule" element={<ManagerDashboardPage />} />
+        <Route path="/manager/team"     element={<ManagerTeamPage />} />
+
+        {/* Placeholder routes — pages to be built next */}
+        <Route path="/manager/requests"     element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Requests — coming soon</div>} />
+        <Route path="/manager/availability" element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Availability — coming soon</div>} />
+        <Route path="/manager/profile"      element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Profile — coming soon</div>} />
+
+        <Route path="/employee/shifts"        element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>My Shifts — coming soon</div>} />
+        <Route path="/employee/availability"  element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Availability — coming soon</div>} />
+        <Route path="/employee/swaps"         element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Swaps — coming soon</div>} />
+        <Route path="/employee/alerts"        element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Alerts — coming soon</div>} />
+        <Route path="/employee/profile"       element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Profile — coming soon</div>} />
+      </Routes>
+    </BrowserRouter>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
-import { StatusBar } from '../../../shared/components/StatusBar';
 import styles from './LoginPage.module.css';
 
 type Role = 'manager' | 'employee';
@@ -54,16 +53,14 @@ export function LoginPage() {
 
   return (
     <PhoneShell>
-      <StatusBar />
-
       <div className={styles.content}>
         {/* Logo */}
         <div className={styles.logoArea}>
           <div className={styles.logoBox}>
-            <span className={styles.logoMark}>a<span className={styles.logoDot}>.</span></span>
+            <div className={styles.logoMark}>a<span className={styles.logoDot}>.</span></div>
           </div>
           <div className={styles.logoTitle}>Authentikka</div>
-          <div className={styles.logoSub}>Shift planning &amp; team scheduling</div>
+          <div className={styles.logoSub}>Shift planning app</div>
           <div className={styles.logoRule} />
         </div>
 

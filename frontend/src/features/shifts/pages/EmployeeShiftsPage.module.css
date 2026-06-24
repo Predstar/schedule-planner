@@ -1,0 +1,308 @@
+.page {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg, #EDE3D4);
+  padding: 16px 16px 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Header */
+.header { padding-top: 4px; }
+
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2C1A0E;
+  margin: 0 0 2px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+/* Calendar card */
+.calCard {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 14px 12px;
+}
+
+.calNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.calTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+.calNavBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #F5F0EB;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B4F2A;
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calDayLabel {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #A89B8A;
+  font-family: 'Inter', sans-serif;
+  padding-bottom: 6px;
+}
+
+.calCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+}
+
+.calDay {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #2C1A0E;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.calDay:hover { background: #F5EFE8; }
+
+.calDaySelected {
+  background: #C2742A !important;
+  color: #FFFFFF !important;
+}
+
+.calDayToday {
+  background: #F5DFC5;
+  color: #C2742A;
+  font-weight: 700;
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #C2742A;
+  position: absolute;
+  bottom: 3px;
+}
+
+/* Selected day */
+.daySection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dayLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #C2742A;
+  font-family: 'Inter', sans-serif;
+}
+
+.clearBtn {
+  font-size: 13px;
+  color: #8C7B6B;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.selectedShiftCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 14px 14px 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.selectedShiftAccent {
+  width: 4px;
+  height: 48px;
+  background: #C2742A;
+  border-radius: 0 4px 4px 0;
+  flex-shrink: 0;
+}
+
+.selectedShiftBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.selectedShiftTime {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+.selectedShiftSection {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+}
+
+.assignedBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2C1A0E;
+  background: #F0EBE3;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.noShift {
+  font-size: 13px;
+  color: #A89B8A;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* Upcoming */
+.upcomingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upcomingLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #A89B8A;
+  letter-spacing: 0.06em;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+.upcomingList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upcomingCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.upcomingCard:hover { background: #FAF6F0; }
+
+.upcomingDateBadge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #FFF3E0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upcomingMonth {
+  font-size: 9px;
+  font-weight: 700;
+  color: #C2742A;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.upcomingDay {
+  font-size: 15px;
+  font-weight: 700;
+  color: #C2742A;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+.upcomingInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.upcomingTime {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+.upcomingMeta {
+  font-size: 12px;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+}
+
+.sectionBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2C1A0E;
+  background: #F0EBE3;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-family: 'Inter', sans-serif;
+}

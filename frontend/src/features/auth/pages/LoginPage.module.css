@@ -22,18 +22,21 @@
   justify-content: center;
   margin-bottom: 14px;
   box-shadow: 0 6px 20px var(--accent-shadow);
+  overflow: hidden;
 }
 
 .logoMark {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 50px;
+  font-size: 42px;
   font-weight: 600;
   color: var(--accent);
   letter-spacing: -2px;
   line-height: 1;
-  padding-bottom: 4px;
+  /* Cancel out Playfair's built-in descender space so the glyph sits true-center */
+  position: relative;
+  top: -3px;
 }
-.logoDot { font-size: 44px; font-weight: 700; }
+.logoDot { font-size: 38px; font-weight: 700; }
 
 .logoTitle {
   font-family: 'Playfair Display', Georgia, serif;

@@ -151,6 +151,33 @@
   transition: width 0.4s ease;
 }
 
+.hoursRemaining {
+  font-size: 12px;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Switch Demo User */
+.switchBtn {
+  margin-top: 4px;
+  background: none;
+  border: 1.5px solid #C2742A;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #C2742A;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.switchBtn:hover { background: #FFF3E0; }
+
 /* Sign out */
 .signOutBtn {
   margin-top: 4px;

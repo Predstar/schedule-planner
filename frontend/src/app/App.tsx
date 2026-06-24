@@ -4,6 +4,8 @@ import { ManagerDashboardPage } from '../features/schedules/pages/ManagerDashboa
 import { ManagerTeamPage } from '../features/employees/pages/ManagerTeamPage';
 import { AvailabilityPage } from '../features/availability/pages/AvailabilityPage';
 import { ProfilePage } from '../features/profile/pages/ProfilePage';
+import { EmployeeShiftsPage } from '../features/shifts/pages/EmployeeShiftsPage';
+import { EmployeeSwapsPage } from '../features/swaps/pages/EmployeeSwapsPage';
 
 export function App() {
   return (
@@ -25,8 +27,8 @@ export function App() {
         <Route path="/employee/availability" element={<AvailabilityPage role="employee" />} />
 
         {/* Placeholder employee routes */}
-        <Route path="/employee/shifts"   element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>My Shifts — coming soon</div>} />
-        <Route path="/employee/swaps"    element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Swaps — coming soon</div>} />
+        <Route path="/employee/shifts"   element={<EmployeeShiftsPage />} />
+        <Route path="/employee/swaps"    element={<EmployeeSwapsPage />} />
         <Route path="/employee/alerts"   element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Alerts — coming soon</div>} />
         <Route path="/employee/profile"  element={<ProfilePage role="employee" />} />
       </Routes>

@@ -1,6 +1,7 @@
 # ARCHITECTURE_v1.md
 
-> Version 1 — expanded to include frontend layer architecture and frontend ↔ backend integration design.
+> Version 1 — expanded to include frontend layer architecture, frontend ↔ backend integration design,
+> and a full log of all pages, services, and files built to date.
 > Original system architecture is documented in `ARCHITECTURE.md`.
 
 ---
@@ -38,8 +39,10 @@ Supabase is used only as the managed PostgreSQL database.
 
 ## Technology Stack
 
-* React + Vite frontend
-* TypeScript
+* React + Vite + TypeScript
+* CSS Modules
+* React Router
+* jsPDF (PDF export)
 * Node.js
 * NestJS backend
 * Prisma ORM
@@ -49,68 +52,100 @@ Supabase is used only as the managed PostgreSQL database.
 
 ---
 
-## Project Structure
+## Project Structure (current state)
 
 ```text
 Schedule_Planner/
 ├── docs/
-│   ├── ARCHITECTURE.md         — original system architecture
-│   ├── ARCHITECTURE_v1.md      — this file (frontend layers + integration)
-│   └── API_CONTRACTS.md        — API request/response shapes
+│   ├── ARCHITECTURE.md             — original system architecture (untouched)
+│   ├── ARCHITECTURE_v1.md          — this file
+│   └── API_CONTRACTS.md            — API request/response shapes
 │
-├── frontend/
-│   └── src/
-│       ├── app/
-│       │   ├── App.tsx               — routing only, no business logic
-│       │   └── styles.css
-│       │
-│       ├── shared/
-│       │   ├── components/           — PhoneShell, StatusBar, BottomNav
-│       │   ├── lib/
-│       │   │   └── apiClient.ts      — base HTTP client, token attachment
-│       │   ├── types/
-│       │   │   └── api.types.ts      — TypeScript types mirroring API_CONTRACTS.md
-│       │   └── utils/
-│       │
-│       └── features/
-│           ├── auth/
-│           │   ├── pages/            — LoginPage
-│           │   ├── services/         — auth.service.ts
-│           │   └── types/
-│           ├── employees/
-│           │   ├── pages/            — ManagerTeamPage
-│           │   ├── services/         — employees.service.ts
-│           │   └── types/
-│           ├── schedules/
-│           │   ├── pages/            — ManagerDashboardPage
-│           │   ├── services/         — schedules.service.ts
-│           │   └── types/
-│           ├── shifts/
-│           │   └── services/         — shifts.service.ts
-│           ├── availability/
-│           │   ├── pages/            — AvailabilityPage (shared manager + employee)
-│           │   └── services/         — availability.service.ts
-│           └── profile/
-│               └── pages/            — ProfilePage (shared manager + employee)
-│
-└── backend/
-    ├── prisma/
-    │   ├── schema.prisma
-    │   ├── migrations/
-    │   └── seed.ts
-    │
+└── frontend/
     └── src/
-        ├── auth/
-        ├── users/
-        ├── employees/
-        ├── availability/
-        ├── shifts/
-        ├── schedules/
-        ├── prisma/
+        ├── app/
+        │   ├── App.tsx             — routing only
+        │   └── styles.css
+        │
         ├── shared/
-        ├── app.module.ts
-        └── main.ts
+        │   ├── components/
+        │   │   ├── PhoneShell.tsx          — mobile phone frame wrapper
+        │   │   ├── StatusBar.tsx           — top status bar
+        │   │   └── BottomNav.tsx           — bottom navigation (manager + employee variants)
+        │   ├── lib/
+        │   │   └── apiClient.ts            — base HTTP client with JWT token attachment
+        │   └── types/
+        │       └── api.types.ts            — TypeScript types mirroring API_CONTRACTS.md
+        │
+        └── features/
+            ├── auth/
+            │   ├── pages/
+            │   │   └── LoginPage.tsx       — role toggle, email/password, demo credentials card; no StatusBar (login screen is not a phone-shell screen)
+            │   └── services/
+            │       └── auth.service.ts     — login(), getCurrentUser(), logout()
+            │
+            ├── employees/
+            │   ├── pages/
+            │   │   └── ManagerTeamPage.tsx — team list, role filter, employee detail sheet, PDF export
+            │   ├── services/
+            │   │   └── employees.service.ts
+            │   └── types/
+            │       └── employee.ts
+            │
+            ├── schedules/
+            │   ├── pages/
+            │   │   └── ManagerDashboardPage.tsx — calendar, shift list per day, Add Shift modal
+            │   └── services/
+            │       └── schedules.service.ts
+            │
+            ├── shifts/
+            │   ├── pages/
+            │   │   ├── EmployeeShiftsPage.tsx        — My Shifts: calendar + day detail + upcoming list
+            │   │   └── EmployeeShiftsPage.module.css
+            │   └── services/
+            │       └── shifts.service.ts
+            │
+            ├── availability/
+            │   ├── pages/
+            │   │   └── AvailabilityPage.tsx     — shared manager + employee, week view, morning/evening toggles
+            │   └── services/
+            │       └── availability.service.ts
+            │
+            ├── swaps/
+            │   ├── pages/
+            │   │   ├── EmployeeSwapsPage.tsx         — swap requests list, status badges, New Request modal
+            │   │   └── EmployeeSwapsPage.module.css
+            │   └── services/
+            │       └── swaps.service.ts
+            │
+            └── profile/
+                └── pages/
+                    └── ProfilePage.tsx          — shared manager + employee, info cards, hours progress
 ```
+
+---
+
+## Routes
+
+### Manager Routes
+
+| Path | Page | Notes |
+|---|---|---|
+| `/manager/schedule` | ManagerDashboardPage | Calendar + shift list + Add Shift modal |
+| `/manager/team` | ManagerTeamPage | Team list, filter, PDF export |
+| `/manager/availability` | AvailabilityPage | Week availability view |
+| `/manager/requests` | — | Coming soon |
+| `/manager/profile` | ProfilePage | Sign Out button |
+
+### Employee Routes
+
+| Path | Page | Notes |
+|---|---|---|
+| `/employee/shifts` | EmployeeShiftsPage | Calendar + upcoming shifts |
+| `/employee/availability` | AvailabilityPage | Week availability with 14h deadline timer |
+| `/employee/swaps` | EmployeeSwapsPage | Swap requests + New Request modal |
+| `/employee/alerts` | — | Coming soon |
+| `/employee/profile` | ProfilePage | Switch Demo User button, remaining hours |
 
 ---
 
@@ -215,8 +250,39 @@ return MOCK_USERS[data.email];            return apiClient.post<LoginResponse>(
                                           );
 ```
 
-Every service function follows this pattern — the commented-out real call sits
-directly below the mock so the swap is a one-line change per function.
+Every service function has the real call commented out directly below the mock,
+so the swap is a one-line change per function.
+
+---
+
+## Service Files — Coverage
+
+| Service | Functions |
+|---|---|
+| `auth.service.ts` | `login()`, `getCurrentUser()`, `logout()` |
+| `employees.service.ts` | `listEmployees()`, `getEmployee()`, `createEmployee()`, `updateEmployee()`, `deactivateEmployee()` |
+| `availability.service.ts` | `submitAvailability()`, `updateAvailability()`, `getEmployeeAvailability()`, `getWeeklyAvailability()` |
+| `shifts.service.ts` | `listShifts()`, `createShift()`, `updateShift()`, `deleteShift()` |
+| `schedules.service.ts` | `getWeeklySchedule()`, `createDraftSchedule()`, `addAssignment()`, `removeAssignment()`, `replaceAssignment()`, `approveSchedule()`, `rejectSchedule()`, `publishSchedule()`, `getMyRoleSchedule()` |
+
+---
+
+## UI Decisions
+
+| Decision | Rationale |
+|---|---|
+| `StatusBar` not rendered on `LoginPage` | Login screen should not look like a phone screenshot; status bar (time, wifi, battery) is omitted |
+| Logo tagline is "Shift planning app" | Concise branding; replaces earlier "Shift planning & team scheduling" |
+| Logo `a.` optically centered via `position: relative; top: -3px` | Playfair Display has built-in descender space that shifts the glyph above true center; the offset corrects it visually |
+
+---
+
+## Sign Out / Session
+
+- `logout()` in `auth.service.ts` calls `clearToken()` which removes the JWT from `localStorage`
+- ProfilePage calls `logout()` then navigates to `/login` via React Router
+- Manager profile shows **Sign Out** button
+- Employee profile shows **Switch Demo User** button (same behaviour — clears token + redirects)
 
 ---
 
@@ -268,20 +334,10 @@ Services handle:
 
 ### auth
 
-Handles:
-
-* Login
-* Password validation
-* JWT generation
-* JWT validation
-* Current user lookup
-* Auth guards
-
-The application does not support public self-registration.
+Handles login, JWT generation/validation, current user lookup, auth guards.
+No public self-registration — accounts created by ADMIN or MANAGER only.
 
 ### users
-
-Handles system user accounts.
 
 Rules:
 
@@ -292,202 +348,83 @@ Rules:
 
 ### employees
 
-Handles employee profiles.
+Profile includes: first name, last name, email, phone, employment type, employee role, weekly hour limit, active status.
 
-Employee profile includes:
-
-* First name
-* Last name
-* Email
-* Phone
-* Employment type
-* Employee role
-* Weekly hour limit
-* Active status
-
-Employee profile does not include:
-
-* Hourly rate
-* Salary
-* Payroll data
-* Labor cost data
-
-Supported scheduling roles:
-
-* WAITER
-* RUNNER
-* BARTENDER
+Supported scheduling roles: `WAITER` | `RUNNER` | `BARTENDER`
 
 ### availability
 
-Handles weekly employee availability.
-
-Employees can submit and update their own availability before the deadline.
-
-Managers and admins can view employee availability.
+Employees submit and update their own availability before a deadline.
+Managers and admins can view all employee availability.
 
 ### shifts
 
-Handles shift creation and shift requirements.
-
-Each shift has:
-
-* Date
-* Start time
-* End time
-* Employee role
-* Required count
+Each shift has: date, start time, end time, employee role, required count.
 
 ### schedules
 
-Handles:
-
-* Manual draft schedule creation
-* Manual assignment of employees to shifts
-* Draft review
-* Schedule approval
-* Schedule publishing
-* Published schedule viewing by employee role
+Manual draft creation → assignment → approval → publishing.
+Published schedule visible to employees for their own role only.
 
 ---
 
-## Future Modules
-
-These are intentionally excluded from the MVP:
+## Future Modules (deferred from MVP)
 
 * leave
-* swaps
+* swaps (backend — frontend shell already built)
 * holidays
 * notifications
 * reporting
-
-They may be added after the core scheduling flow works.
 
 ---
 
 ## System Roles
 
-System roles:
-
-* ADMIN
-* MANAGER
-* EMPLOYEE
-
-Access principles:
-
-* `ADMIN` can create manager accounts, create employee accounts, manage users, and manage settings.
-* `MANAGER` can create and manage employee profiles.
-* `MANAGER` can create shifts.
-* `MANAGER` can manually create and edit draft schedules.
-* `MANAGER` can approve and publish schedules.
-* `EMPLOYEE` can submit availability.
-* `EMPLOYEE` can view only published schedules for their own employee role.
-* `EMPLOYEE` cannot view draft or approved schedules.
-* `EMPLOYEE` cannot create accounts.
+* `ADMIN` — full access, creates MANAGER accounts
+* `MANAGER` — manages employees, shifts, schedules
+* `EMPLOYEE` — submits availability, views published schedule for own role only
 
 ---
 
 ## Schedule Lifecycle
-
-Schedule statuses:
 
 ```text
 DRAFT → APPROVED → PUBLISHED
               └──→ REJECTED
 ```
 
-Lifecycle:
-
-```text
-Manager Creates Draft Schedule
-  → Manager Adds / Edits Assignments
-  → Manager Approves
-  → Manager Publishes
-  → Employees View Published Schedule For Their Role
-```
-
-`DRAFT` schedule:
-
-* Visible only to `ADMIN` and `MANAGER`.
-* Editable by `MANAGER`.
-
-`APPROVED` schedule:
-
-* Visible only to `ADMIN` and `MANAGER`.
-* Not visible to employees.
-
-`PUBLISHED` schedule:
-
-* Visible to `ADMIN`, `MANAGER`, and `EMPLOYEE`.
-* `ADMIN` and `MANAGER` can view the full schedule.
-* `WAITER` employees see only published WAITER assignments.
-* `RUNNER` employees see only published RUNNER assignments.
-* `BARTENDER` employees see only published BARTENDER assignments.
-* Employees cannot view published schedules for other roles.
+* `DRAFT` — visible to ADMIN + MANAGER only, editable
+* `APPROVED` — visible to ADMIN + MANAGER only, not editable
+* `PUBLISHED` — visible to all; employees see only their own role's assignments
 
 ---
 
 ## Manual Scheduling Rules
 
-The MVP uses manual scheduling.
+Assignment must respect: employee role match, availability, weekly hour limit, no shift overlap.
 
-Managers manually assign employees to shifts.
-
-Manual assignment must respect:
-
-* Employee role matches shift role
-* Employee availability
-* Weekly hour limits
-* No overlapping shifts
-
-The MVP does not include:
-
-* Automatic schedule generation
-* Fairness optimization
-* Payroll optimization
-* Holiday-aware scheduling
-* Leave-aware scheduling
-* Shift swap validation
+Not in MVP: auto-generation, fairness optimization, payroll, leave-aware or holiday-aware scheduling.
 
 ---
 
 ## Deferred Features
 
-The following features are future enhancements:
-
-* Automatic schedule generation
-* Leave management
-* Shift swaps
-* Holiday calculation
-* In-app notifications
-* Email notifications
-* Push notifications
-* Payroll
-* Labor cost forecasting
-* Reporting
-* Multi-location support
+Auto schedule generation, leave, swaps (backend), holidays, notifications (push/email/in-app),
+payroll, labor cost forecasting, reporting, multi-location.
 
 ---
 
 ## Prisma Rules
 
-Use Prisma as the database access layer.
-
-Use Prisma migrations for schema changes.
-
-Use UUID primary keys.
-
-Do not manually edit old migration files.
-
-Use Prisma transactions when multiple related writes must succeed or fail together.
+* UUID primary keys
+* Migrations for all schema changes — never edit old migration files
+* Transactions for multi-write operations
 
 ---
 
 ## Error Handling
 
-Use a global exception filter on the backend.
-
-Standard error response:
+Global exception filter on backend. Standard error shape:
 
 ```json
 {
@@ -495,25 +432,17 @@ Standard error response:
   "statusCode": 400,
   "code": "VALIDATION_ERROR",
   "message": "Validation failed",
-  "details": [
-    {
-      "field": "email",
-      "message": "Email is required"
-    }
-  ]
+  "details": [{ "field": "email", "message": "Email is required" }]
 }
 ```
 
-Frontend handles errors in the service layer. Pages receive either data or a
-thrown error object matching this shape.
+Frontend catches errors in the service layer. Pages receive either data or a thrown error matching this shape.
 
 ---
 
 ## Testing Strategy
 
 Use Vitest.
-
-Test categories:
 
 * Service unit tests — mock data, correct shapes, error codes
 * Component tests — rendering, interactions, conditional UI

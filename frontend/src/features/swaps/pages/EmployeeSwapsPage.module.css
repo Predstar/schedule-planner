@@ -1,0 +1,195 @@
+.page {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg, #EDE3D4);
+  padding: 16px 16px 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2C1A0E;
+  margin: 0;
+}
+
+.newBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #C2742A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+.newBtn:hover { background: #A85E1E; }
+
+/* Section */
+.section { display: flex; flex-direction: column; gap: 8px; }
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #A89B8A;
+  letter-spacing: 0.06em;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+.empty {
+  font-size: 13px;
+  color: #A89B8A;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* Swap card */
+.card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2C1A0E;
+  font-family: 'Inter', sans-serif;
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 3px 9px;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  font-size: 12px;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+}
+
+.cardReason {
+  font-size: 12px;
+  color: #8C7B6B;
+  font-style: italic;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Modal */
+.modalOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+  border-radius: inherit;
+}
+
+.modal {
+  background: #FFFFFF;
+  width: 100%;
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #2C1A0E;
+  font-family: 'Playfair Display', serif;
+  margin: 0;
+}
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+}
+
+.select, .textarea {
+  border: 1.5px solid #E8DDD0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #2C1A0E;
+  background: #FAF6F0;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.textarea { resize: none; }
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 12px;
+  border: 1.5px solid #D4B89A;
+  border-radius: 12px;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #8C7B6B;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+.submitBtn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #C2742A;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}

@@ -1,5 +1,9 @@
-export async function seed() {
-  return;
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  await prisma.$disconnect();
 }
 
-void seed();
+void main();

@@ -287,6 +287,11 @@ Access:
 * `ADMIN`
 * `MANAGER`
 
+Deadline rule:
+
+* `EMPLOYEE` self-service submission is allowed only before `weekStartDate - 2 days at 00:00` in the `Europe/Berlin` timezone.
+* `ADMIN` and `MANAGER` may submit on behalf of an employee at any time.
+
 Request:
 
 ```json
@@ -343,6 +348,11 @@ Access:
 * `EMPLOYEE` for own availability before deadline
 * `ADMIN`
 * `MANAGER`
+
+Deadline rule:
+
+* `EMPLOYEE` self-service updates are allowed only before `weekStartDate - 2 days at 00:00` in the `Europe/Berlin` timezone.
+* `ADMIN` and `MANAGER` may update on behalf of an employee at any time.
 
 ## Get Employee Availability
 
@@ -405,6 +415,11 @@ Response:
 }
 ```
 
+Errors:
+
+* `400 VALIDATION_ERROR`
+* `403 ACCESS_DENIED`
+
 ## List Shifts
 
 ```http
@@ -415,6 +430,11 @@ Access:
 
 * `ADMIN`
 * `MANAGER`
+
+Errors:
+
+* `400 VALIDATION_ERROR`
+* `403 ACCESS_DENIED`
 
 ## Update Shift
 
@@ -427,6 +447,12 @@ Access:
 * `ADMIN`
 * `MANAGER`
 
+Errors:
+
+* `400 VALIDATION_ERROR`
+* `403 ACCESS_DENIED`
+* `404 SHIFT_NOT_FOUND`
+
 ## Delete Shift
 
 ```http
@@ -437,6 +463,11 @@ Access:
 
 * `ADMIN`
 * `MANAGER`
+
+Errors:
+
+* `403 ACCESS_DENIED`
+* `404 SHIFT_NOT_FOUND`
 
 # 6. Schedule API
 

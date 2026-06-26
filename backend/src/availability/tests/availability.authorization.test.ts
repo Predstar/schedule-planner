@@ -1,16 +1,15 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it } from 'vitest';
-import { AvailabilityService } from '../../availability/availability.service';
-import { AppException } from '../../shared/exceptions/app.exception';
 import { RolesGuard } from '../../auth/guards/roles.guard';
-import { EmployeesController } from '../employees.controller';
-import { EmployeesService } from '../employees.service';
+import { AppException } from '../../shared/exceptions/app.exception';
+import { AvailabilityController } from '../availability.controller';
+import { AvailabilityService } from '../availability.service';
 
 function createContext(handler: Function, systemRole?: 'ADMIN' | 'MANAGER' | 'EMPLOYEE'): ExecutionContext {
   return {
     getHandler: () => handler,
-    getClass: () => EmployeesController,
+    getClass: () => AvailabilityController,
     switchToHttp: () => ({
       getRequest: () => ({
         user: systemRole ? { systemRole } : undefined,
@@ -19,16 +18,17 @@ function createContext(handler: Function, systemRole?: 'ADMIN' | 'MANAGER' | 'EM
   } as unknown as ExecutionContext;
 }
 
-describe('Employees authorization', () => {
+describe('Availability authorization', () => {
   const guard = new RolesGuard(new Reflector());
-  const controller = new EmployeesController(
-    {} as EmployeesService,
-    {} as AvailabilityService,
-  );
+  const controller = new AvailabilityController({} as AvailabilityService);
 
-  it('EMPLOYEE cannot create employee profile', () => {
+  it('allows MANAGER listing weekly availability', () => {
+    expect(guard.canActivate(createContext(controller.list, 'MANAGER'))).toBe(true);
+  });
+
+  it('denies EMPLOYEE listing weekly availability', () => {
     try {
-      guard.canActivate(createContext(controller.create, 'EMPLOYEE'));
+      guard.canActivate(createContext(controller.list, 'EMPLOYEE'));
     } catch (error) {
       expect(error).toBeInstanceOf(AppException);
       expect((error as AppException).code).toBe('ACCESS_DENIED');

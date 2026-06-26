@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AvailabilityService } from '../../availability/availability.service';
 import type { AuthUserPayload } from '../../auth/types/auth-user-payload.type';
 import { EmployeesController } from '../employees.controller';
 import { EmployeesService } from '../employees.service';
@@ -11,12 +12,15 @@ describe('EmployeesController', () => {
     updateEmployee: vi.fn(),
     deactivateEmployee: vi.fn(),
   } as unknown as EmployeesService;
+  const availabilityService = {
+    getEmployeeAvailability: vi.fn(),
+  } as unknown as AvailabilityService;
 
   let controller: EmployeesController;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    controller = new EmployeesController(employeesService);
+    controller = new EmployeesController(employeesService, availabilityService);
   });
 
   it('returns the employee response shape for create', async () => {
@@ -78,5 +82,30 @@ describe('EmployeesController', () => {
     await controller.getById('employee-1', authUser);
 
     expect(employeesService.getEmployeeById).toHaveBeenCalledWith('employee-1', authUser);
+  });
+
+  it('passes availability request through for employee availability lookups', async () => {
+    const authUser: AuthUserPayload = {
+      id: 'user-1',
+      email: 'john.doe@restaurant.com',
+      systemRole: 'EMPLOYEE',
+      employeeId: 'employee-1',
+    };
+
+    availabilityService.getEmployeeAvailability = vi.fn().mockResolvedValue({
+      id: 'availability-1',
+      employeeId: 'employee-1',
+      weekStartDate: '2026-04-06',
+      status: 'SUBMITTED',
+      entries: [],
+    });
+
+    await controller.getAvailability('employee-1', { weekStartDate: '2026-04-06' }, authUser);
+
+    expect(availabilityService.getEmployeeAvailability).toHaveBeenCalledWith(
+      'employee-1',
+      { weekStartDate: '2026-04-06' },
+      authUser,
+    );
   });
 });

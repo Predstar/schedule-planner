@@ -60,8 +60,8 @@ describe('EmployeesService', () => {
   it('rejects duplicate email on create with 409 EMPLOYEE_EMAIL_ALREADY_EXISTS', async () => {
     prismaService.employee.findUnique = vi.fn().mockResolvedValue({ id: 'existing-employee' });
 
-    await expect(
-      employeesService.createEmployee({
+    try {
+      await employeesService.createEmployee({
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@restaurant.com',
@@ -69,10 +69,14 @@ describe('EmployeesService', () => {
         employmentType: 'PART_TIME',
         employeeRole: 'WAITER',
         weeklyHourLimit: 25,
-      }),
-    ).rejects.toMatchObject({
-      code: 'EMPLOYEE_EMAIL_ALREADY_EXISTS',
-    });
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('EMPLOYEE_EMAIL_ALREADY_EXISTS');
+      return;
+    }
+
+    throw new Error('Expected EMPLOYEE_EMAIL_ALREADY_EXISTS');
   });
 
   it('allows EMPLOYEE fetching own profile', async () => {
@@ -109,16 +113,20 @@ describe('EmployeesService', () => {
   });
 
   it("rejects EMPLOYEE fetching another employee's profile with 403 ACCESS_DENIED", async () => {
-    await expect(
-      employeesService.getEmployeeById('employee-2', {
+    try {
+      await employeesService.getEmployeeById('employee-2', {
         id: 'user-1',
         email: 'john.doe@restaurant.com',
         systemRole: 'EMPLOYEE',
         employeeId: 'employee-1',
-      }),
-    ).rejects.toMatchObject({
-      code: 'ACCESS_DENIED',
-    });
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('ACCESS_DENIED');
+      return;
+    }
+
+    throw new Error('Expected ACCESS_DENIED');
   });
 
   it('applies list filters independently and combined', async () => {

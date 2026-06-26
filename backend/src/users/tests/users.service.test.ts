@@ -51,31 +51,39 @@ describe('UsersService', () => {
   it('rejects duplicate email for manager creation', async () => {
     prismaService.user.findUnique = vi.fn().mockResolvedValue({ id: 'existing-user' });
 
-    await expect(
-      usersService.createManagerAccount({
+    try {
+      await usersService.createManagerAccount({
         email: 'manager@restaurant.com',
         password: 'temporaryPassword123',
         firstName: 'Maria',
         lastName: 'Meyer',
-      }),
-    ).rejects.toMatchObject({
-      code: 'USER_EMAIL_ALREADY_EXISTS',
-    });
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('USER_EMAIL_ALREADY_EXISTS');
+      return;
+    }
+
+    throw new Error('Expected USER_EMAIL_ALREADY_EXISTS');
   });
 
   it('rejects employee account creation for a missing employee', async () => {
     prismaService.user.findUnique = vi.fn().mockResolvedValue(null);
     prismaService.employee.findUnique = vi.fn().mockResolvedValue(null);
 
-    await expect(
-      usersService.createEmployeeAccount({
+    try {
+      await usersService.createEmployeeAccount({
         email: 'john.doe@restaurant.com',
         password: 'temporaryPassword123',
         employeeId: '11111111-1111-1111-1111-111111111111',
-      }),
-    ).rejects.toMatchObject({
-      code: 'EMPLOYEE_NOT_FOUND',
-    });
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('EMPLOYEE_NOT_FOUND');
+      return;
+    }
+
+    throw new Error('Expected EMPLOYEE_NOT_FOUND');
   });
 
   it('creates an employee account', async () => {
@@ -110,14 +118,18 @@ describe('UsersService', () => {
   it('rejects duplicate email for employee creation', async () => {
     prismaService.user.findUnique = vi.fn().mockResolvedValue({ id: 'existing-user' });
 
-    await expect(
-      usersService.createEmployeeAccount({
+    try {
+      await usersService.createEmployeeAccount({
         email: 'john.doe@restaurant.com',
         password: 'temporaryPassword123',
         employeeId: '11111111-1111-1111-1111-111111111111',
-      }),
-    ).rejects.toMatchObject({
-      code: 'USER_EMAIL_ALREADY_EXISTS',
-    });
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('USER_EMAIL_ALREADY_EXISTS');
+      return;
+    }
+
+    throw new Error('Expected USER_EMAIL_ALREADY_EXISTS');
   });
 });

@@ -9,6 +9,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AvailabilityService } from '../availability/availability.service';
+import { AvailabilityResponseDto } from '../availability/dto/availability-response.dto';
+import { AvailabilityWeekQueryDto } from '../availability/dto/availability-week-query.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,7 +26,10 @@ import { EmployeesService } from './employees.service';
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
 export class EmployeesController {
-  constructor(private readonly employeesService: EmployeesService) {}
+  constructor(
+    private readonly employeesService: EmployeesService,
+    private readonly availabilityService: AvailabilityService,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -38,6 +44,15 @@ export class EmployeesController {
     @CurrentUser() authUser: AuthUserPayload,
   ): Promise<EmployeeResponseDto> {
     return this.employeesService.getEmployeeById(employeeId, authUser);
+  }
+
+  @Get(':employeeId/availability')
+  getAvailability(
+    @Param('employeeId') employeeId: string,
+    @Query() query: AvailabilityWeekQueryDto,
+    @CurrentUser() authUser: AuthUserPayload,
+  ): Promise<AvailabilityResponseDto> {
+    return this.availabilityService.getEmployeeAvailability(employeeId, query, authUser);
   }
 
   @Get()

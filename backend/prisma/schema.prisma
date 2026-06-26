@@ -25,6 +25,10 @@ enum EmployeeRole {
   BARTENDER
 }
 
+enum AvailabilityStatus {
+  SUBMITTED
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
@@ -52,6 +56,47 @@ model Employee {
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
   user            User?
+  availabilities  Availability[]
 
   @@map("employees")
+}
+
+model Availability {
+  id            String             @id @default(uuid()) @db.Uuid
+  employeeId    String             @map("employee_id") @db.Uuid
+  employee      Employee           @relation(fields: [employeeId], references: [id])
+  weekStartDate DateTime           @map("week_start_date") @db.Date
+  status        AvailabilityStatus
+  entries       AvailabilityEntry[]
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  @@unique([employeeId, weekStartDate])
+  @@map("availabilities")
+}
+
+model AvailabilityEntry {
+  id             String       @id @default(uuid()) @db.Uuid
+  availabilityId String       @map("availability_id") @db.Uuid
+  availability   Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  date           DateTime     @db.Date
+  startTime      String       @map("start_time")
+  endTime        String       @map("end_time")
+  available      Boolean
+  preferred      Boolean
+
+  @@map("availability_entries")
+}
+
+model Shift {
+  id            String       @id @default(uuid()) @db.Uuid
+  date          DateTime     @db.Date
+  startTime     String       @map("start_time")
+  endTime       String       @map("end_time")
+  employeeRole  EmployeeRole @map("employee_role")
+  requiredCount Int          @map("required_count")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@map("shifts")
 }

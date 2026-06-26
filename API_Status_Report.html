@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Authentikka — API Integration Status Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f3ef; color: #2c2c2c; }
+
+    header {
+      background: #3b2f1e;
+      color: #fff;
+      padding: 36px 48px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    header .logo {
+      width: 56px; height: 56px;
+      background: #fff;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 800; color: #3b2f1e;
+    }
+    header h1 { font-size: 26px; font-weight: 700; }
+    header p { font-size: 13px; color: #c9b99a; margin-top: 4px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+    .meta {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 36px;
+    }
+    .meta-card {
+      background: #fff; border-radius: 10px; padding: 16px 24px;
+      border-left: 4px solid #3b2f1e; flex: 1; min-width: 160px;
+    }
+    .meta-card .label { font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; }
+    .meta-card .value { font-size: 22px; font-weight: 700; color: #3b2f1e; margin-top: 4px; }
+
+    h2 {
+      font-size: 18px; font-weight: 700; margin: 36px 0 14px;
+      color: #3b2f1e; border-bottom: 2px solid #e0d8cc; padding-bottom: 8px;
+    }
+
+    table {
+      width: 100%; border-collapse: collapse;
+      background: #fff; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      margin-bottom: 10px;
+    }
+    thead { background: #3b2f1e; color: #fff; }
+    thead th { padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
+    tbody tr { border-bottom: 1px solid #f0ece5; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 11px 16px; font-size: 13.5px; }
+    tbody tr:hover { background: #faf8f4; }
+
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    }
+    .badge-get    { background: #dbeafe; color: #1d4ed8; }
+    .badge-post   { background: #dcfce7; color: #15803d; }
+    .badge-put    { background: #fef9c3; color: #a16207; }
+    .badge-patch  { background: #ede9fe; color: #6d28d9; }
+    .badge-delete { background: #fee2e2; color: #b91c1c; }
+
+    .status-done    { background: #dcfce7; color: #15803d; }
+    .status-missing { background: #fee2e2; color: #b91c1c; }
+    .status-mock    { background: #fef9c3; color: #a16207; }
+
+    .file-list {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      overflow: hidden; margin-bottom: 10px;
+    }
+    .file-group-header {
+      background: #f0ece5; padding: 10px 16px;
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #3b2f1e;
+    }
+    .file-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 16px; border-bottom: 1px solid #f5f2ed; font-size: 13px;
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: #faf8f4; }
+    .file-name { font-family: monospace; color: #2563eb; min-width: 280px; font-size: 12.5px; }
+    .file-type-tag {
+      background: #e7e3db; color: #3b2f1e;
+      padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .file-desc { color: #555; flex: 1; }
+
+    .todo-list { list-style: none; }
+    .todo-list li {
+      background: #fff; border-left: 4px solid #ef4444;
+      padding: 12px 16px; margin-bottom: 8px; border-radius: 0 8px 8px 0;
+      font-size: 13.5px;
+    }
+    .todo-list li strong { display: block; color: #b91c1c; margin-bottom: 2px; }
+
+    footer {
+      text-align: center; padding: 32px; font-size: 12px; color: #999;
+      border-top: 1px solid #e0d8cc; margin-top: 48px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">a.</div>
+  <div>
+    <h1>Authentikka — API Integration Status Report</h1>
+    <p>Generated: 26 June 2026 &nbsp;|&nbsp; Stack: React + NestJS + Supabase (Prisma)</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Summary Cards -->
+  <div class="meta">
+    <div class="meta-card"><div class="label">Total Endpoints</div><div class="value">26</div></div>
+    <div class="meta-card"><div class="label">Integrated</div><div class="value" style="color:#15803d">23</div></div>
+    <div class="meta-card"><div class="label">Missing Backend</div><div class="value" style="color:#b91c1c">3</div></div>
+    <div class="meta-card"><div class="label">Mock Only</div><div class="value" style="color:#a16207">1</div></div>
+    <div class="meta-card"><div class="label">Backend Files</div><div class="value">83</div></div>
+  </div>
+
+  <!-- AUTH -->
+  <h2>1. Authentication</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Page / Feature</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/auth/login</td><td>Login Page</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/auth/register</td><td>Register Page</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/auth/me</td><td>All Pages (session check)</td><td><span class="badge status-done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- EMPLOYEES -->
+  <h2>2. Employees Management</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Page / Feature</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/employees</td><td>Manager Team Page</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/employees/:id</td><td>Manager Team — detail sheet</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/employees</td><td>Manager Team — add employee</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-put">PUT</span></td><td>/employees/:id</td><td>Manager Team — edit employee</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-patch">PATCH</span></td><td>/employees/:id/deactivate</td><td>Manager Team — deactivate</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/users/employees</td><td>Manager Team — create login account</td><td><span class="badge status-done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- SHIFTS -->
+  <h2>3. Shifts Management</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Page / Feature</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/shifts?from=&amp;to=</td><td>Manager Dashboard</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/shifts</td><td>Manager Dashboard — add shift</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-put">PUT</span></td><td>/shifts/:id</td><td>Manager Dashboard — edit shift</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-delete">DELETE</span></td><td>/shifts/:id</td><td>Manager Dashboard — delete shift</td><td><span class="badge status-done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- SCHEDULES -->
+  <h2>4. Schedules Management</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Page / Feature</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/schedules?weekStartDate=</td><td>Manager Dashboard</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/schedules</td><td>Manager Dashboard — create draft</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/schedules/:id/assignments</td><td>Manager Dashboard — assign employee</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-delete">DELETE</span></td><td>/schedules/:id/assignments/:assignmentId</td><td>Manager Dashboard — remove assignment</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/schedules/my-role?weekStartDate=</td><td>Employee Shifts Page</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-put">PUT</span></td><td>/schedules/:id/assignments/:assignmentId</td><td>Manager Dashboard — replace assignment</td><td><span class="badge status-missing">Missing Backend</span></td></tr>
+      <tr><td><span class="badge badge-patch">PATCH</span></td><td>/schedules/:id/approve</td><td>Manager Dashboard — approve schedule</td><td><span class="badge status-missing">Missing Backend</span></td></tr>
+      <tr><td><span class="badge badge-patch">PATCH</span></td><td>/schedules/:id/reject</td><td>Manager Dashboard — reject schedule</td><td><span class="badge status-missing">Missing Backend</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- AVAILABILITY -->
+  <h2>5. Availability</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Page / Feature</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-post">POST</span></td><td>/availability</td><td>Employee Availability Page</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-put">PUT</span></td><td>/availability/:id</td><td>Employee Availability Page — update</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/availability/:employeeId?weekStartDate=</td><td>Availability / Manager Dashboard</td><td><span class="badge status-done">Done</span></td></tr>
+      <tr><td><span class="badge badge-get">GET</span></td><td>/availability?weekStartDate=</td><td>Manager Dashboard — weekly view</td><td><span class="badge status-done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- SHIFT SWAPS -->
+  <h2>6. Shift Swaps</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Page / Feature</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>—</td><td>No endpoints yet</td><td>Employee Swaps Page (mock data only)</td><td><span class="badge status-mock">Mock Only</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- WHAT'S LEFT -->
+  <h2>What's Left for Your Colleague</h2>
+  <ul class="todo-list">
+    <li>
+      <strong>PUT /schedules/:id/assignments/:assignmentId</strong>
+      Backend route missing — add handler in schedules.controller.ts + schedules.service.ts to replace an existing assignment.
+    </li>
+    <li>
+      <strong>PATCH /schedules/:id/approve &amp; /reject</strong>
+      Backend routes missing — add approve/reject handlers with status transitions in schedules.service.ts.
+    </li>
+    <li>
+      <strong>Shift Swaps — Full Feature</strong>
+      Frontend UI exists with mock data. Needs full backend module (controller, service, DTOs) + frontend API integration.
+    </li>
+  </ul>
+
+  <!-- BACKEND FILES -->
+  <h2>Updated Backend Files</h2>
+
+  <div class="file-list">
+    <div class="file-group-header">Core</div>
+    <div class="file-row"><span class="file-name">src/main.ts</span><span class="file-type-tag">Entry Point</span><span class="file-desc">Bootstrap, CORS (localhost + 192.168.100.142), global prefix /api/v1, validation pipe, exception filter</span></div>
+    <div class="file-row"><span class="file-name">src/app.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">Root module importing all feature modules</span></div>
+    <div class="file-row"><span class="file-name">src/prisma/prisma.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">PrismaClient wrapper with lifecycle hooks</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Authentication</div>
+    <div class="file-row"><span class="file-name">src/auth/auth.controller.ts</span><span class="file-type-tag">Controller</span><span class="file-desc">POST /register, POST /login, GET /me</span></div>
+    <div class="file-row"><span class="file-name">src/auth/auth.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">Login validation, registration with bcrypt, getCurrentUser</span></div>
+    <div class="file-row"><span class="file-name">src/auth/auth.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">JWT strategy, guards, decorators wired up</span></div>
+    <div class="file-row"><span class="file-name">src/auth/auth.constants.ts</span><span class="file-type-tag">Constants</span><span class="file-desc">JWT_SECRET, token type, system roles enum</span></div>
+    <div class="file-row"><span class="file-name">src/auth/strategies/jwt.strategy.ts</span><span class="file-type-tag">Strategy</span><span class="file-desc">Passport JWT extraction and user validation</span></div>
+    <div class="file-row"><span class="file-name">src/auth/guards/jwt-auth.guard.ts</span><span class="file-type-tag">Guard</span><span class="file-desc">Protects routes requiring a valid JWT</span></div>
+    <div class="file-row"><span class="file-name">src/auth/guards/roles.guard.ts</span><span class="file-type-tag">Guard</span><span class="file-desc">Role-based access control (MANAGER / EMPLOYEE)</span></div>
+    <div class="file-row"><span class="file-name">src/auth/decorators/current-user.decorator.ts</span><span class="file-type-tag">Decorator</span><span class="file-desc">Extracts authenticated user from request context</span></div>
+    <div class="file-row"><span class="file-name">src/auth/decorators/roles.decorator.ts</span><span class="file-type-tag">Decorator</span><span class="file-desc">Marks endpoints with required roles</span></div>
+    <div class="file-row"><span class="file-name">src/auth/dto/login-request.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Email + password</span></div>
+    <div class="file-row"><span class="file-name">src/auth/dto/login-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">accessToken, tokenType, user object</span></div>
+    <div class="file-row"><span class="file-name">src/auth/dto/register-request.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Email + password for registration</span></div>
+    <div class="file-row"><span class="file-name">src/auth/dto/current-user-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">id, email, systemRole, employeeId</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Users</div>
+    <div class="file-row"><span class="file-name">src/users/users.controller.ts</span><span class="file-type-tag">Controller</span><span class="file-desc">POST /users/managers, POST /users/employees</span></div>
+    <div class="file-row"><span class="file-name">src/users/users.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">Account creation, email uniqueness, password hashing</span></div>
+    <div class="file-row"><span class="file-name">src/users/users.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">Users module config</span></div>
+    <div class="file-row"><span class="file-name">src/users/dto/create-employee-user.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">email, password, employeeId</span></div>
+    <div class="file-row"><span class="file-name">src/users/dto/create-manager-user.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">email, password</span></div>
+    <div class="file-row"><span class="file-name">src/users/dto/user-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">id, email, systemRole, employeeId, active</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Employees</div>
+    <div class="file-row"><span class="file-name">src/employees/employees.controller.ts</span><span class="file-type-tag">Controller</span><span class="file-desc">CRUD + deactivate endpoints</span></div>
+    <div class="file-row"><span class="file-name">src/employees/employees.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">Full CRUD with role-based access (employees see own data only)</span></div>
+    <div class="file-row"><span class="file-name">src/employees/employees.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">Employees module with AvailabilityService dependency</span></div>
+    <div class="file-row"><span class="file-name">src/employees/employees.constants.ts</span><span class="file-type-tag">Constants</span><span class="file-desc">Employment types and role enums</span></div>
+    <div class="file-row"><span class="file-name">src/employees/dto/create-employee.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">firstName, lastName, email, phone, employmentType, role, weeklyHourLimit</span></div>
+    <div class="file-row"><span class="file-name">src/employees/dto/update-employee.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">All profile fields except email</span></div>
+    <div class="file-row"><span class="file-name">src/employees/dto/employee-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Full employee profile response</span></div>
+    <div class="file-row"><span class="file-name">src/employees/dto/list-employees-query.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Filters: active, employmentType, employeeRole</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Availability</div>
+    <div class="file-row"><span class="file-name">src/availability/availability.controller.ts</span><span class="file-type-tag">Controller</span><span class="file-desc">Submit, update, list, get by employee</span></div>
+    <div class="file-row"><span class="file-name">src/availability/availability.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">Berlin timezone deadline enforcement (2 days before week start)</span></div>
+    <div class="file-row"><span class="file-name">src/availability/availability.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">Availability module config</span></div>
+    <div class="file-row"><span class="file-name">src/availability/availability.constants.ts</span><span class="file-type-tag">Constants</span><span class="file-desc">Status enum (SUBMITTED), Berlin timezone</span></div>
+    <div class="file-row"><span class="file-name">src/availability/dto/submit-availability.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">employeeId, weekStartDate, entries[]</span></div>
+    <div class="file-row"><span class="file-name">src/availability/dto/update-availability.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">entries[]</span></div>
+    <div class="file-row"><span class="file-name">src/availability/dto/availability-entry.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">date, startTime, endTime, available, preferred flags</span></div>
+    <div class="file-row"><span class="file-name">src/availability/dto/availability-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Full availability with entries array</span></div>
+    <div class="file-row"><span class="file-name">src/availability/dto/availability-week-query.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">weekStartDate (ISO format)</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Shifts</div>
+    <div class="file-row"><span class="file-name">src/shifts/shifts.controller.ts</span><span class="file-type-tag">Controller</span><span class="file-desc">Create, list, update, delete (manager only)</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/shifts.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">CRUD with date range querying</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/shifts.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">Shifts module config</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/shifts.constants.ts</span><span class="file-type-tag">Constants</span><span class="file-desc">Shift-related enums</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/dto/create-shift.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">date, startTime, endTime, employeeRole, requiredCount</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/dto/update-shift.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Shift update fields</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/dto/shift-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Full shift response structure</span></div>
+    <div class="file-row"><span class="file-name">src/shifts/dto/list-shifts-query.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">from / to date range (ISO format)</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Schedules</div>
+    <div class="file-row"><span class="file-name">src/schedules/schedules.controller.ts</span><span class="file-type-tag">Controller</span><span class="file-desc">Create, get, my-role, add/remove assignments, publish</span></div>
+    <div class="file-row"><span class="file-name">src/schedules/schedules.service.ts</span><span class="file-type-tag">Service</span><span class="file-desc">Schedule CRUD, assignment management, publish, employee role filtering</span></div>
+    <div class="file-row"><span class="file-name">src/schedules/schedules.module.ts</span><span class="file-type-tag">Module</span><span class="file-desc">Schedules module config</span></div>
+    <div class="file-row"><span class="file-name">src/schedules/dto/create-schedule.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">weekStartDate</span></div>
+    <div class="file-row"><span class="file-name">src/schedules/dto/add-assignment.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">shiftId, employeeId</span></div>
+    <div class="file-row"><span class="file-name">src/schedules/dto/schedule-response.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">Full schedule with assignments (assignmentId, shiftId, employeeId, name, date, times, role)</span></div>
+    <div class="file-row"><span class="file-name">src/schedules/dto/week-query.dto.ts</span><span class="file-type-tag">DTO</span><span class="file-desc">weekStartDate query filter</span></div>
+  </div>
+
+  <div class="file-list">
+    <div class="file-group-header">Shared Infrastructure</div>
+    <div class="file-row"><span class="file-name">src/shared/exceptions/app.exception.ts</span><span class="file-type-tag">Exception</span><span class="file-desc">Custom HttpException with code, message, details[]</span></div>
+    <div class="file-row"><span class="file-name">src/shared/filters/global-exception.filter.ts</span><span class="file-type-tag">Filter</span><span class="file-desc">Standardized error response: timestamp, statusCode, code, message, details</span></div>
+    <div class="file-row"><span class="file-name">src/shared/types/api-error-response.type.ts</span><span class="file-type-tag">Type</span><span class="file-desc">Error response type definition</span></div>
+  </div>
+
+</div>
+
+<footer>Authentikka — Schedule Planner &nbsp;|&nbsp; Internal report for development handoff &nbsp;|&nbsp; 26 June 2026</footer>
+
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Authentikka — Backend Handoff Report</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f5f3ef;color:#2c2c2c;font-size:14px}
+
+    header{background:#3b2f1e;color:#fff;padding:32px 48px;display:flex;align-items:center;gap:20px}
+    .logo{width:52px;height:52px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#3b2f1e;flex-shrink:0}
+    header h1{font-size:24px;font-weight:700}
+    header p{font-size:12px;color:#c9b99a;margin-top:4px}
+
+    .container{max-width:1200px;margin:0 auto;padding:36px 24px}
+
+    /* Summary cards */
+    .cards{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:36px}
+    .card{background:#fff;border-radius:10px;padding:16px 22px;border-left:4px solid #3b2f1e;flex:1;min-width:130px}
+    .card .lbl{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px}
+    .card .val{font-size:24px;font-weight:700;color:#3b2f1e;margin-top:4px}
+    .card.green .val{color:#15803d} .card.red .val{color:#b91c1c} .card.amber .val{color:#a16207}
+
+    /* Section headers */
+    h2{font-size:17px;font-weight:700;color:#3b2f1e;border-bottom:2px solid #e0d8cc;padding-bottom:8px;margin:36px 0 14px}
+    h3{font-size:13px;font-weight:700;color:#fff;background:#5c4a32;padding:9px 14px;border-radius:6px 6px 0 0;margin-top:18px;letter-spacing:0.4px}
+
+    /* Tables */
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:0 0 8px 8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:4px}
+    thead{background:#3b2f1e;color:#fff}
+    thead th{padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.7px}
+    tbody tr{border-bottom:1px solid #f0ece5}
+    tbody tr:last-child{border-bottom:none}
+    tbody td{padding:9px 14px;font-size:12.5px;vertical-align:top}
+    tbody tr:hover{background:#faf8f4}
+    td.path{font-family:monospace;color:#1d4ed8;font-size:12px;white-space:nowrap}
+    td.desc{color:#444;line-height:1.5}
+
+    /* Badges */
+    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+    .new   {background:#dcfce7;color:#15803d}
+    .mod   {background:#dbeafe;color:#1d4ed8}
+    .orig  {background:#f3f4f6;color:#555}
+    .missing{background:#fee2e2;color:#b91c1c}
+    .mock  {background:#fef9c3;color:#a16207}
+    .done  {background:#dcfce7;color:#15803d}
+
+    /* TODO list */
+    .todo{list-style:none;margin-top:8px}
+    .todo li{background:#fff;border-left:4px solid #ef4444;padding:12px 16px;margin-bottom:8px;border-radius:0 8px 8px 0}
+    .todo li strong{display:block;color:#b91c1c;margin-bottom:3px;font-size:13px}
+    .todo li span{color:#555;font-size:12.5px}
+
+    /* Tech stack */
+    .stack{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+    .stack-item{background:#fff;border:1px solid #e0d8cc;border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:600;color:#3b2f1e}
+
+    /* API endpoint table method badges */
+    .get   {background:#dbeafe;color:#1d4ed8}
+    .post  {background:#dcfce7;color:#15803d}
+    .put   {background:#fef9c3;color:#a16207}
+    .patch {background:#ede9fe;color:#6d28d9}
+    .del   {background:#fee2e2;color:#b91c1c}
+
+    footer{text-align:center;padding:28px;font-size:12px;color:#999;border-top:1px solid #e0d8cc;margin-top:48px}
+
+    /* collapsible */
+    details summary{cursor:pointer;user-select:none;list-style:none}
+    details summary::-webkit-details-marker{display:none}
+    details[open] summary .arrow{transform:rotate(90deg)}
+    .arrow{display:inline-block;transition:transform .2s;margin-right:6px}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">a.</div>
+  <div>
+    <h1>Authentikka — Backend Handoff Report</h1>
+    <p>Generated: 26 June 2026 &nbsp;|&nbsp; Branch: feat/frontend-ui &nbsp;|&nbsp; Stack: NestJS · Prisma · Supabase PostgreSQL</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Tech Stack -->
+  <h2>Tech Stack</h2>
+  <div class="stack">
+    <div class="stack-item">NestJS v10</div>
+    <div class="stack-item">TypeScript 5.6</div>
+    <div class="stack-item">Prisma ORM v5</div>
+    <div class="stack-item">Supabase PostgreSQL</div>
+    <div class="stack-item">Passport JWT</div>
+    <div class="stack-item">bcrypt</div>
+    <div class="stack-item">class-validator</div>
+    <div class="stack-item">Vitest</div>
+    <div class="stack-item">pnpm workspaces</div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card"><div class="lbl">Backend Files</div><div class="val">80</div></div>
+    <div class="card green"><div class="lbl">New Files</div><div class="val">5</div></div>
+    <div class="card"><div class="lbl">Modified Files</div><div class="val">14</div></div>
+    <div class="card"><div class="lbl">API Endpoints</div><div class="val">26</div></div>
+    <div class="card green"><div class="lbl">Integrated</div><div class="val">23</div></div>
+    <div class="card red"><div class="lbl">Missing</div><div class="val">3</div></div>
+    <div class="card amber"><div class="lbl">Mock Only</div><div class="val">1</div></div>
+  </div>
+
+  <!-- HOW TO RUN -->
+  <h2>How to Run the Backend</h2>
+  <table>
+    <thead><tr><th>Step</th><th>Command</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>1. Install deps</td><td class="path">pnpm install</td><td class="desc">Run from Schedule_Planner root</td></tr>
+      <tr><td>2. Set env vars</td><td class="path">backend/.env</td><td class="desc">DATABASE_URL, DIRECT_URL, JWT_SECRET, RESEND_API_KEY, FRONTEND_URL already configured</td></tr>
+      <tr><td>3. Generate Prisma</td><td class="path">pnpm --filter backend prisma:generate</td><td class="desc">Generates Prisma client from schema</td></tr>
+      <tr><td>4. Seed DB</td><td class="path">pnpm --filter backend seed</td><td class="desc">Creates manager accounts in Supabase</td></tr>
+      <tr><td>5. Start dev server</td><td class="path">cd backend && pnpm dev</td><td class="desc">Starts NestJS on http://localhost:3000</td></tr>
+      <tr><td>6. Base URL</td><td class="path">http://localhost:3000/api/v1</td><td class="desc">All routes prefixed with /api/v1</td></tr>
+    </tbody>
+  </table>
+
+  <!-- INTEGRATED API ENDPOINTS -->
+  <h2>Integrated API Endpoints</h2>
+
+  <h3>Authentication</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/auth/login</td><td class="desc">Public</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/auth/register</td><td class="desc">Public</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/auth/me</td><td class="desc">JWT required</td><td><span class="badge done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Employees</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/employees</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/employees/:id</td><td class="desc">Manager / own record</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/employees</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge put">PUT</span></td><td class="path">/employees/:id</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td class="path">/employees/:id/deactivate</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/users/employees</td><td class="desc">Manager only — creates login account</td><td><span class="badge done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Shifts</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/shifts?from=&amp;to=</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/shifts</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge put">PUT</span></td><td class="path">/shifts/:id</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge del">DELETE</span></td><td class="path">/shifts/:id</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Schedules</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/schedules?weekStartDate=</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/schedules</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/schedules/:id/assignments</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge del">DELETE</span></td><td class="path">/schedules/:id/assignments/:assignmentId</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/schedules/my-role?weekStartDate=</td><td class="desc">Employee — own shifts</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge put">PUT</span></td><td class="path">/schedules/:id/assignments/:assignmentId</td><td class="desc">Manager only</td><td><span class="badge missing">Missing Backend</span></td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td class="path">/schedules/:id/approve</td><td class="desc">Manager only</td><td><span class="badge missing">Missing Backend</span></td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td class="path">/schedules/:id/reject</td><td class="desc">Manager only</td><td><span class="badge missing">Missing Backend</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Availability</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge post">POST</span></td><td class="path">/availability</td><td class="desc">Employee only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge put">PUT</span></td><td class="path">/availability/:id</td><td class="desc">Employee only</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/availability/:employeeId?weekStartDate=</td><td class="desc">Manager / own record</td><td><span class="badge done">Done</span></td></tr>
+      <tr><td><span class="badge get">GET</span></td><td class="path">/availability?weekStartDate=</td><td class="desc">Manager only</td><td><span class="badge done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Shift Swaps</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>—</td><td class="path">Not started</td><td class="desc">Employee — swap requests</td><td><span class="badge mock">Mock UI Only</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- WHAT COLLEAGUE NEEDS TO DO -->
+  <h2>What Your Colleague Needs to Build</h2>
+  <ul class="todo">
+    <li>
+      <strong>PUT /schedules/:id/assignments/:assignmentId — Replace Assignment</strong>
+      <span>Add handler in schedules.controller.ts + schedules.service.ts. Frontend already calls this endpoint. Replace an existing employee assignment with a new one.</span>
+    </li>
+    <li>
+      <strong>PATCH /schedules/:id/approve — Approve Schedule</strong>
+      <span>Add approve handler with status transition (DRAFT → APPROVED) in schedules.service.ts and wire up in controller.</span>
+    </li>
+    <li>
+      <strong>PATCH /schedules/:id/reject — Reject Schedule</strong>
+      <span>Add reject handler with status transition (APPROVED → DRAFT or REJECTED) in schedules.service.ts and wire up in controller.</span>
+    </li>
+    <li>
+      <strong>Shift Swaps — Full Feature (backend + frontend integration)</strong>
+      <span>Frontend UI exists at features/swaps/EmployeeSwapsPage.tsx with mock data. Needs: new swaps module (controller, service, module, DTOs), Prisma schema migration for swap requests table, and frontend API integration.</span>
+    </li>
+  </ul>
+
+  <!-- BACKEND FILE LIST -->
+  <h2>Complete Backend File List</h2>
+
+  <!-- CORE -->
+  <h3>Core Application</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/main.ts</td><td>Entry Point</td><td><span class="badge mod">Modified</span></td><td class="desc">Bootstrap, CORS, global prefix /api/v1, validation pipe, exception filter</td></tr>
+      <tr><td class="path">src/app.module.ts</td><td>Module</td><td><span class="badge mod">Modified</span></td><td class="desc">Root module importing all feature modules</td></tr>
+      <tr><td class="path">src/prisma/prisma.service.ts</td><td>Service</td><td><span class="badge orig">Original</span></td><td class="desc">PrismaClient wrapper with lifecycle hooks</td></tr>
+      <tr><td class="path">src/prisma/prisma.module.ts</td><td>Module</td><td><span class="badge orig">Original</span></td><td class="desc">Prisma module registration</td></tr>
+    </tbody>
+  </table>
+
+  <!-- AUTH -->
+  <h3>Auth Module</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/auth/auth.controller.ts</td><td>Controller</td><td><span class="badge mod">Modified</span></td><td class="desc">POST /login, POST /register, GET /me</td></tr>
+      <tr><td class="path">src/auth/auth.service.ts</td><td>Service</td><td><span class="badge mod">Modified</span></td><td class="desc">Login validation, bcrypt password check, JWT signing, getCurrentUser</td></tr>
+      <tr><td class="path">src/auth/auth.module.ts</td><td>Module</td><td><span class="badge orig">Original</span></td><td class="desc">JWT strategy, guards, decorators wired up</td></tr>
+      <tr><td class="path">src/auth/auth.constants.ts</td><td>Constants</td><td><span class="badge orig">Original</span></td><td class="desc">JWT_SECRET, token type, system roles enum</td></tr>
+      <tr><td class="path">src/auth/strategies/jwt.strategy.ts</td><td>Strategy</td><td><span class="badge orig">Original</span></td><td class="desc">Passport JWT extraction and user validation</td></tr>
+      <tr><td class="path">src/auth/guards/jwt-auth.guard.ts</td><td>Guard</td><td><span class="badge orig">Original</span></td><td class="desc">Protects routes requiring valid JWT</td></tr>
+      <tr><td class="path">src/auth/guards/roles.guard.ts</td><td>Guard</td><td><span class="badge orig">Original</span></td><td class="desc">Role-based access control (MANAGER / EMPLOYEE)</td></tr>
+      <tr><td class="path">src/auth/decorators/current-user.decorator.ts</td><td>Decorator</td><td><span class="badge orig">Original</span></td><td class="desc">Extracts authenticated user from request context</td></tr>
+      <tr><td class="path">src/auth/decorators/roles.decorator.ts</td><td>Decorator</td><td><span class="badge orig">Original</span></td><td class="desc">Marks endpoints with required roles</td></tr>
+      <tr><td class="path">src/auth/types/auth-user-payload.type.ts</td><td>Type</td><td><span class="badge orig">Original</span></td><td class="desc">JWT payload and AuthUserPayload interfaces</td></tr>
+      <tr><td class="path">src/auth/dto/login-request.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">Email + password</td></tr>
+      <tr><td class="path">src/auth/dto/login-response.dto.ts</td><td>DTO</td><td><span class="badge mod">Modified</span></td><td class="desc">accessToken, tokenType, user object</td></tr>
+      <tr><td class="path">src/auth/dto/register-request.dto.ts</td><td>DTO</td><td><span class="badge new">New</span></td><td class="desc">Email + password for registration</td></tr>
+      <tr><td class="path">src/auth/dto/current-user-response.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">id, email, systemRole, employeeId</td></tr>
+      <tr><td class="path">src/auth/tests/auth.service.test.ts</td><td>Test</td><td><span class="badge mod">Modified</span></td><td class="desc">Login, registration, getCurrentUser tests</td></tr>
+      <tr><td class="path">src/auth/tests/auth.controller.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Controller endpoint tests</td></tr>
+      <tr><td class="path">src/auth/tests/auth-guard.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">JWT guard tests</td></tr>
+      <tr><td class="path">src/auth/tests/roles-guard.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Roles guard tests</td></tr>
+    </tbody>
+  </table>
+
+  <!-- USERS -->
+  <h3>Users Module</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/users/users.controller.ts</td><td>Controller</td><td><span class="badge orig">Original</span></td><td class="desc">POST /users/managers, POST /users/employees</td></tr>
+      <tr><td class="path">src/users/users.service.ts</td><td>Service</td><td><span class="badge orig">Original</span></td><td class="desc">Account creation, email uniqueness, password hashing</td></tr>
+      <tr><td class="path">src/users/users.module.ts</td><td>Module</td><td><span class="badge orig">Original</span></td><td class="desc">Users module config</td></tr>
+      <tr><td class="path">src/users/dto/create-employee-user.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">email, password, employeeId</td></tr>
+      <tr><td class="path">src/users/dto/create-manager-user.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">email, password</td></tr>
+      <tr><td class="path">src/users/dto/user-response.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">id, email, systemRole, employeeId, active</td></tr>
+      <tr><td class="path">src/users/tests/users.controller.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Controller tests</td></tr>
+      <tr><td class="path">src/users/tests/users.service.test.ts</td><td>Test</td><td><span class="badge mod">Modified</span></td><td class="desc">Service logic tests</td></tr>
+      <tr><td class="path">src/users/tests/users.authorization.test.ts</td><td>Test</td><td><span class="badge mod">Modified</span></td><td class="desc">Authorization tests</td></tr>
+    </tbody>
+  </table>
+
+  <!-- EMPLOYEES -->
+  <h3>Employees Module</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/employees/employees.controller.ts</td><td>Controller</td><td><span class="badge mod">Modified</span></td><td class="desc">CRUD + deactivate endpoints</td></tr>
+      <tr><td class="path">src/employees/employees.service.ts</td><td>Service</td><td><span class="badge orig">Original</span></td><td class="desc">Full CRUD, employees see own data only</td></tr>
+      <tr><td class="path">src/employees/employees.module.ts</td><td>Module</td><td><span class="badge mod">Modified</span></td><td class="desc">Module with AvailabilityService dependency</td></tr>
+      <tr><td class="path">src/employees/employees.constants.ts</td><td>Constants</td><td><span class="badge orig">Original</span></td><td class="desc">Employment type and role enums</td></tr>
+      <tr><td class="path">src/employees/dto/create-employee.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">firstName, lastName, email, phone, employmentType, role, weeklyHourLimit</td></tr>
+      <tr><td class="path">src/employees/dto/update-employee.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">All profile fields except email</td></tr>
+      <tr><td class="path">src/employees/dto/employee-response.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">Full employee profile response</td></tr>
+      <tr><td class="path">src/employees/dto/list-employees-query.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">Filters: active, employmentType, employeeRole</td></tr>
+      <tr><td class="path">src/employees/tests/employees.controller.test.ts</td><td>Test</td><td><span class="badge mod">Modified</span></td><td class="desc">Controller tests</td></tr>
+      <tr><td class="path">src/employees/tests/employees.service.test.ts</td><td>Test</td><td><span class="badge mod">Modified</span></td><td class="desc">Service tests</td></tr>
+      <tr><td class="path">src/employees/tests/employees.authorization.test.ts</td><td>Test</td><td><span class="badge mod">Modified</span></td><td class="desc">Role-based access tests</td></tr>
+      <tr><td class="path">src/employees/tests/employees.validation.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Validation tests</td></tr>
+    </tbody>
+  </table>
+
+  <!-- AVAILABILITY -->
+  <h3>Availability Module</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/availability/availability.controller.ts</td><td>Controller</td><td><span class="badge mod">Modified</span></td><td class="desc">Submit, update, list, get by employee</td></tr>
+      <tr><td class="path">src/availability/availability.service.ts</td><td>Service</td><td><span class="badge mod">Modified</span></td><td class="desc">Berlin timezone deadline enforcement (2 days before week start)</td></tr>
+      <tr><td class="path">src/availability/availability.module.ts</td><td>Module</td><td><span class="badge orig">Original</span></td><td class="desc">Availability module config</td></tr>
+      <tr><td class="path">src/availability/availability.constants.ts</td><td>Constants</td><td><span class="badge orig">Original</span></td><td class="desc">Status enum (SUBMITTED), Berlin timezone constant</td></tr>
+      <tr><td class="path">src/availability/dto/submit-availability.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">employeeId, weekStartDate, entries[]</td></tr>
+      <tr><td class="path">src/availability/dto/update-availability.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">entries[]</td></tr>
+      <tr><td class="path">src/availability/dto/availability-entry.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">date, startTime, endTime, available, preferred flags</td></tr>
+      <tr><td class="path">src/availability/dto/availability-response.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">Full availability with entries array</td></tr>
+      <tr><td class="path">src/availability/dto/availability-week-query.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">weekStartDate (ISO format)</td></tr>
+      <tr><td class="path">src/availability/tests/availability.controller.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Controller tests</td></tr>
+      <tr><td class="path">src/availability/tests/availability.service.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Service tests including deadline enforcement</td></tr>
+      <tr><td class="path">src/availability/tests/availability.authorization.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Access control tests</td></tr>
+      <tr><td class="path">src/availability/tests/availability.validation.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Week boundary and entry validation tests</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SHIFTS -->
+  <h3>Shifts Module</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/shifts/shifts.controller.ts</td><td>Controller</td><td><span class="badge orig">Original</span></td><td class="desc">Create, list, update, delete (manager only)</td></tr>
+      <tr><td class="path">src/shifts/shifts.service.ts</td><td>Service</td><td><span class="badge orig">Original</span></td><td class="desc">CRUD with date range querying</td></tr>
+      <tr><td class="path">src/shifts/shifts.module.ts</td><td>Module</td><td><span class="badge orig">Original</span></td><td class="desc">Shifts module config</td></tr>
+      <tr><td class="path">src/shifts/shifts.constants.ts</td><td>Constants</td><td><span class="badge orig">Original</span></td><td class="desc">Shift-related enums</td></tr>
+      <tr><td class="path">src/shifts/dto/create-shift.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">date, startTime, endTime, employeeRole, requiredCount</td></tr>
+      <tr><td class="path">src/shifts/dto/update-shift.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">Shift update fields</td></tr>
+      <tr><td class="path">src/shifts/dto/shift-response.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">Full shift response</td></tr>
+      <tr><td class="path">src/shifts/dto/list-shifts-query.dto.ts</td><td>DTO</td><td><span class="badge orig">Original</span></td><td class="desc">from / to date range (ISO format)</td></tr>
+      <tr><td class="path">src/shifts/tests/shifts.controller.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Controller tests</td></tr>
+      <tr><td class="path">src/shifts/tests/shifts.service.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Service logic tests</td></tr>
+      <tr><td class="path">src/shifts/tests/shifts.authorization.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Authorization tests</td></tr>
+      <tr><td class="path">src/shifts/tests/shifts.validation.test.ts</td><td>Test</td><td><span class="badge orig">Original</span></td><td class="desc">Validation tests</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SCHEDULES -->
+  <h3>Schedules Module</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/schedules/schedules.controller.ts</td><td>Controller</td><td><span class="badge mod">Modified</span></td><td class="desc">Create, get, my-role, add/remove assignments, publish</td></tr>
+      <tr><td class="path">src/schedules/schedules.service.ts</td><td>Service</td><td><span class="badge mod">Modified</span></td><td class="desc">Schedule CRUD, assignment management, publish, employee role filtering</td></tr>
+      <tr><td class="path">src/schedules/schedules.module.ts</td><td>Module</td><td><span class="badge mod">Modified</span></td><td class="desc">Schedules module config</td></tr>
+      <tr><td class="path">src/schedules/dto/create-schedule.dto.ts</td><td>DTO</td><td><span class="badge new">New</span></td><td class="desc">weekStartDate</td></tr>
+      <tr><td class="path">src/schedules/dto/add-assignment.dto.ts</td><td>DTO</td><td><span class="badge new">New</span></td><td class="desc">shiftId, employeeId</td></tr>
+      <tr><td class="path">src/schedules/dto/schedule-response.dto.ts</td><td>DTO</td><td><span class="badge new">New</span></td><td class="desc">Full schedule with assignments array</td></tr>
+      <tr><td class="path">src/schedules/dto/week-query.dto.ts</td><td>DTO</td><td><span class="badge new">New</span></td><td class="desc">weekStartDate query filter</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SHARED -->
+  <h3>Shared Infrastructure</h3>
+  <table>
+    <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">src/shared/exceptions/app.exception.ts</td><td>Exception</td><td><span class="badge orig">Original</span></td><td class="desc">Custom HttpException with code, message, details[]</td></tr>
+      <tr><td class="path">src/shared/filters/global-exception.filter.ts</td><td>Filter</td><td><span class="badge mod">Modified</span></td><td class="desc">Standardized error response: timestamp, statusCode, code, message, details</td></tr>
+      <tr><td class="path">src/shared/types/api-error-response.type.ts</td><td>Type</td><td><span class="badge orig">Original</span></td><td class="desc">Error response type definition</td></tr>
+    </tbody>
+  </table>
+
+  <!-- PRISMA MIGRATIONS -->
+  <h3>Prisma Schema &amp; Migrations</h3>
+  <table>
+    <thead><tr><th>File</th><th>Status</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="path">prisma/schema.prisma</td><td><span class="badge mod">Modified</span></td><td class="desc">User, Employee, Availability, Shift, Schedule, Assignment models</td></tr>
+      <tr><td class="path">prisma/seed.ts</td><td><span class="badge mod">Modified</span></td><td class="desc">Seeds manager accounts into Supabase</td></tr>
+      <tr><td class="path">prisma/migrations/20260624153000_add_auth_user/</td><td><span class="badge orig">Original</span></td><td class="desc">User table with email, passwordHash, systemRole, active</td></tr>
+      <tr><td class="path">prisma/migrations/20260624190000_add_employees_table/</td><td><span class="badge orig">Original</span></td><td class="desc">Employee profile table</td></tr>
+      <tr><td class="path">prisma/migrations/20260624194000_expand_employees_profile/</td><td><span class="badge orig">Original</span></td><td class="desc">Expanded employee fields (phone, role, weeklyHourLimit)</td></tr>
+      <tr><td class="path">prisma/migrations/20260625161000_add_availability_tables/</td><td><span class="badge orig">Original</span></td><td class="desc">Availability and AvailabilityEntry tables</td></tr>
+      <tr><td class="path">prisma/migrations/20260625170000_add_shifts_table/</td><td><span class="badge orig">Original</span></td><td class="desc">Shift table with date, times, role, requiredCount</td></tr>
+      <tr><td class="path">prisma/migrations/20260625232612_add_schedules_assignments/</td><td><span class="badge new">New</span></td><td class="desc">Schedule and Assignment tables</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>Authentikka — Schedule Planner &nbsp;|&nbsp; Backend Handoff Report &nbsp;|&nbsp; 26 June 2026</footer>
+
+</body>
+</html>

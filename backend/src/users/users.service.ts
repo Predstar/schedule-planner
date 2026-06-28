@@ -24,6 +24,8 @@ export class UsersService {
       data: {
         email: dto.email,
         passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
         systemRole: 'MANAGER',
         employeeId: null,
         active: true,
@@ -53,6 +55,18 @@ export class UsersService {
 
     if (!employee) {
       throw new AppException(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+    }
+
+    const existingEmployeeUser = await this.prismaService.user.findUnique({
+      where: { employeeId: dto.employeeId },
+    });
+
+    if (existingEmployeeUser) {
+      throw new AppException(
+        409,
+        'EMPLOYEE_USER_ALREADY_EXISTS',
+        'Employee user already exists',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);

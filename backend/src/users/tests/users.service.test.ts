@@ -28,6 +28,8 @@ describe('UsersService', () => {
       id: 'manager-1',
       email: 'manager@restaurant.com',
       passwordHash: hashSync('temporaryPassword123', 4),
+      firstName: 'Maria',
+      lastName: 'Meyer',
       systemRole: 'MANAGER',
       employeeId: null,
       active: true,
@@ -45,6 +47,13 @@ describe('UsersService', () => {
       email: 'manager@restaurant.com',
       systemRole: 'MANAGER',
       active: true,
+    });
+
+    expect(prismaService.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        firstName: 'Maria',
+        lastName: 'Meyer',
+      }),
     });
   });
 
@@ -87,7 +96,10 @@ describe('UsersService', () => {
   });
 
   it('creates an employee account', async () => {
-    prismaService.user.findUnique = vi.fn().mockResolvedValue(null);
+    prismaService.user.findUnique = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
     prismaService.employee.findUnique = vi.fn().mockResolvedValue({
       id: '11111111-1111-1111-1111-111111111111',
     });
@@ -113,6 +125,30 @@ describe('UsersService', () => {
       employeeId: '11111111-1111-1111-1111-111111111111',
       active: true,
     });
+  });
+
+  it('rejects employee account creation when the employee already has a user', async () => {
+    prismaService.user.findUnique = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'existing-employee-user' });
+    prismaService.employee.findUnique = vi.fn().mockResolvedValue({
+      id: '11111111-1111-1111-1111-111111111111',
+    });
+
+    try {
+      await usersService.createEmployeeAccount({
+        email: 'john.doe@restaurant.com',
+        password: 'temporaryPassword123',
+        employeeId: '11111111-1111-1111-1111-111111111111',
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('EMPLOYEE_USER_ALREADY_EXISTS');
+      return;
+    }
+
+    throw new Error('Expected EMPLOYEE_USER_ALREADY_EXISTS');
   });
 
   it('rejects duplicate email for employee creation', async () => {

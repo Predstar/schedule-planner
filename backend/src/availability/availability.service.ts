@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppException } from '../shared/exceptions/app.exception';
@@ -73,7 +73,9 @@ export class AvailabilityService {
 
   constructor(
     private readonly prismaService: PrismaService,
-    @Optional() nowProvider?: () => DateTime,
+    @Optional()
+    @Inject('NOW_PROVIDER')
+    nowProvider?: () => DateTime,
   ) {
     this.now = nowProvider ?? (() => DateTime.utc());
   }

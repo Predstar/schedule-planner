@@ -1,6 +1,7 @@
 import { apiClient } from '../../../shared/lib/apiClient';
 import type {
   SubmitAvailabilityRequest,
+  UpdateAvailabilityRequest,
   AvailabilityResponse,
 } from '../../../shared/types/api.types';
 
@@ -10,7 +11,7 @@ export async function submitAvailability(data: SubmitAvailabilityRequest): Promi
 
 export async function updateAvailability(
   availabilityId: string,
-  data: SubmitAvailabilityRequest,
+  data: UpdateAvailabilityRequest,
 ): Promise<AvailabilityResponse> {
   return apiClient.put<AvailabilityResponse>(`/availability/${availabilityId}`, data);
 }
@@ -21,7 +22,7 @@ export async function getEmployeeAvailability(
 ): Promise<AvailabilityResponse | null> {
   try {
     return await apiClient.get<AvailabilityResponse>(
-      `/availability/${employeeId}?weekStartDate=${weekStartDate}`,
+      `/employees/${employeeId}/availability?weekStartDate=${weekStartDate}`,
     );
   } catch (e: unknown) {
     const err = e as { statusCode?: number; code?: string };

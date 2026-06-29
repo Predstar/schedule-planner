@@ -22,6 +22,22 @@ describe('Availability authorization', () => {
   const guard = new RolesGuard(new Reflector());
   const controller = new AvailabilityController({} as AvailabilityService);
 
+  it('allows EMPLOYEE submitting availability', () => {
+    expect(guard.canActivate(createContext(controller.submit, 'EMPLOYEE'))).toBe(true);
+  });
+
+  it('denies MANAGER submitting availability', () => {
+    try {
+      guard.canActivate(createContext(controller.submit, 'MANAGER'));
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('ACCESS_DENIED');
+      return;
+    }
+
+    throw new Error('Expected ACCESS_DENIED');
+  });
+
   it('allows MANAGER listing weekly availability', () => {
     expect(guard.canActivate(createContext(controller.list, 'MANAGER'))).toBe(true);
   });

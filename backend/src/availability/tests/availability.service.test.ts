@@ -192,28 +192,21 @@ describe('AvailabilityService', () => {
     throw new Error('Expected AVAILABILITY_DEADLINE_PASSED');
   });
 
-  it('allows ADMIN to bypass the deadline', async () => {
-    prismaService.employee.findUnique = vi.fn().mockResolvedValue({ id: 'employee-1' });
-    prismaService.availability.findUnique = vi.fn().mockResolvedValue(null);
-    prismaService.availability.create = vi.fn().mockResolvedValue({
-      id: 'availability-1',
-      employeeId: 'employee-1',
-      weekStartDate: new Date('2026-04-06T00:00:00.000Z'),
-      status: 'SUBMITTED',
-      entries: [],
-    });
-
-    const afterDeadlineService = new AvailabilityService(
-      prismaService,
-      () => DateTime.fromISO('2026-04-10T12:00:00', { zone: 'Europe/Berlin' }),
-    );
-
+  it('denies ADMIN submitting employee availability with 403 ACCESS_DENIED', async () => {
     await expect(
-      afterDeadlineService.submitAvailability(
+      availabilityService.submitAvailability(
         {
           employeeId: 'employee-1',
           weekStartDate: '2026-04-06',
-          entries: [],
+          entries: [
+            {
+              date: '2026-04-06',
+              startTime: '09:00',
+              endTime: '17:00',
+              available: true,
+              preferred: true,
+            },
+          ],
         },
         {
           id: 'admin-1',
@@ -222,10 +215,8 @@ describe('AvailabilityService', () => {
           employeeId: null,
         },
       ),
-    ).resolves.toMatchObject({
-      id: 'availability-1',
-      employeeId: 'employee-1',
-      status: 'SUBMITTED',
+    ).rejects.toMatchObject({
+      code: 'ACCESS_DENIED',
     });
   });
 
@@ -273,7 +264,7 @@ describe('AvailabilityService', () => {
     throw new Error('Expected AVAILABILITY_DEADLINE_PASSED');
   });
 
-  it('replaces entries on update inside a transaction', async () => {
+  it('replaces entries on employee self-service update inside a transaction', async () => {
     prismaService.availability.findUnique = vi.fn().mockResolvedValue({
       id: 'availability-1',
       employeeId: 'employee-1',
@@ -321,10 +312,10 @@ describe('AvailabilityService', () => {
           ],
         },
         {
-          id: 'manager-1',
-          email: 'manager@restaurant.com',
-          systemRole: 'MANAGER',
-          employeeId: null,
+          id: 'user-1',
+          email: 'john.doe@restaurant.com',
+          systemRole: 'EMPLOYEE',
+          employeeId: 'employee-1',
         },
       ),
     ).resolves.toEqual({
@@ -341,6 +332,41 @@ describe('AvailabilityService', () => {
           preferred: false,
         },
       ],
+    });
+  });
+
+  it('denies MANAGER updating employee availability with 403 ACCESS_DENIED', async () => {
+    prismaService.availability.findUnique = vi.fn().mockResolvedValue({
+      id: 'availability-1',
+      employeeId: 'employee-1',
+      weekStartDate: new Date('2026-04-06T00:00:00.000Z'),
+      status: 'SUBMITTED',
+      entries: [],
+    });
+
+    await expect(
+      availabilityService.updateAvailability(
+        'availability-1',
+        {
+          entries: [
+            {
+              date: '2026-04-07',
+              startTime: '10:00',
+              endTime: '14:00',
+              available: true,
+              preferred: false,
+            },
+          ],
+        },
+        {
+          id: 'manager-1',
+          email: 'manager@restaurant.com',
+          systemRole: 'MANAGER',
+          employeeId: null,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'ACCESS_DENIED',
     });
   });
 
@@ -408,10 +434,10 @@ describe('AvailabilityService', () => {
           ],
         },
         {
-          id: 'admin-1',
-          email: 'admin@restaurant.com',
-          systemRole: 'ADMIN',
-          employeeId: null,
+          id: 'user-1',
+          email: 'john.doe@restaurant.com',
+          systemRole: 'EMPLOYEE',
+          employeeId: 'employee-1',
         },
       );
     } catch (error) {

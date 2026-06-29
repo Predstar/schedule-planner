@@ -132,6 +132,10 @@ export interface SubmitAvailabilityRequest {
   entries: AvailabilityEntry[];
 }
 
+export interface UpdateAvailabilityRequest {
+  entries: AvailabilityEntry[];
+}
+
 export interface AvailabilityResponse {
   id: string;
   employeeId: string;

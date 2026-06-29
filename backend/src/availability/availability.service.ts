@@ -84,9 +84,9 @@ export class AvailabilityService {
     dto: SubmitAvailabilityDto,
     authUser: AuthUserPayload,
   ): Promise<AvailabilityResponseDto> {
-    this.assertEmployeeAccess(authUser, dto.employeeId);
+    this.assertEmployeeSelfAccess(authUser, dto.employeeId);
     await this.ensureEmployeeExists(dto.employeeId);
-    this.ensureEmployeeDeadline(authUser, dto.weekStartDate);
+    this.ensureEmployeeDeadline(dto.weekStartDate);
     this.validateEntriesWithinWeek(dto.weekStartDate, dto.entries);
 
     const weekStartDate = parseIsoDate(dto.weekStartDate).toJSDate();
@@ -143,8 +143,8 @@ export class AvailabilityService {
       throw new AppException(404, 'AVAILABILITY_NOT_FOUND', 'Availability not found');
     }
 
-    this.assertEmployeeAccess(authUser, existingAvailability.employeeId);
-    this.ensureEmployeeDeadline(authUser, formatIsoDate(existingAvailability.weekStartDate));
+    this.assertEmployeeSelfAccess(authUser, existingAvailability.employeeId);
+    this.ensureEmployeeDeadline(formatIsoDate(existingAvailability.weekStartDate));
     this.validateEntriesWithinWeek(formatIsoDate(existingAvailability.weekStartDate), dto.entries);
 
     const availability = await this.prismaService.$transaction(async (tx) => {
@@ -208,12 +208,8 @@ export class AvailabilityService {
     return availabilities.map(mapAvailability);
   }
 
-  private assertEmployeeAccess(authUser: AuthUserPayload, employeeId: string): void {
-    if (authUser.systemRole !== 'EMPLOYEE') {
-      return;
-    }
-
-    if (!authUser.employeeId || authUser.employeeId !== employeeId) {
+  private assertEmployeeSelfAccess(authUser: AuthUserPayload, employeeId: string): void {
+    if (authUser.systemRole !== 'EMPLOYEE' || !authUser.employeeId || authUser.employeeId !== employeeId) {
       throw new AppException(403, 'ACCESS_DENIED', 'Access denied');
     }
   }
@@ -230,11 +226,7 @@ export class AvailabilityService {
     throw new AppException(403, 'ACCESS_DENIED', 'Access denied');
   }
 
-  private ensureEmployeeDeadline(authUser: AuthUserPayload, weekStartDate: string): void {
-    if (authUser.systemRole !== 'EMPLOYEE') {
-      return;
-    }
-
+  private ensureEmployeeDeadline(weekStartDate: string): void {
     const deadline = DateTime.fromISO(weekStartDate, { zone: BERLIN_TIMEZONE })
       .startOf('day')
       .minus({ days: 2 });

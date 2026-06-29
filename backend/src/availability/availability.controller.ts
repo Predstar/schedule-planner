@@ -16,6 +16,8 @@ export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('EMPLOYEE')
   submit(
     @Body() dto: SubmitAvailabilityDto,
     @CurrentUser() authUser: AuthUserPayload,
@@ -24,6 +26,8 @@ export class AvailabilityController {
   }
 
   @Put(':availabilityId')
+  @UseGuards(RolesGuard)
+  @Roles('EMPLOYEE')
   update(
     @Param('availabilityId') availabilityId: string,
     @Body() dto: UpdateAvailabilityDto,

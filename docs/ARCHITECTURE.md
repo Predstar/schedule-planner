@@ -199,8 +199,8 @@ Employees can submit and update their own availability before the deadline.
 Availability submission deadline rule:
 
 * Deadline = `weekStartDate` minus 2 days, at `00:00`, in the `Europe/Berlin` timezone.
-* This deadline applies only to `EMPLOYEE` self-service submission and updates.
-* `ADMIN` and `MANAGER` are exempt from the deadline and may submit or update availability on an employee's behalf at any time.
+* Only `EMPLOYEE` users may submit or update availability.
+* An `EMPLOYEE` may submit or update only their own availability.
 
 Managers and admins can view employee availability.
 

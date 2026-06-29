@@ -3,12 +3,14 @@ import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { getStoredUser } from '../../auth/services/auth.service';
+import { listEmployees } from '../../employees/services/employees.service';
 import {
+  getWeeklyAvailability,
   submitAvailability,
   updateAvailability,
   getEmployeeAvailability,
 } from '../services/availability.service';
-import type { AvailabilityResponse } from '../../../shared/types/api.types';
+import type { AvailabilityResponse, Employee } from '../../../shared/types/api.types';
 import styles from './AvailabilityPage.module.css';
 
 type NavRole = 'manager' | 'employee';
@@ -60,6 +62,29 @@ function buildWeekDays(monday: Date): DaySlot[] {
   });
 }
 
+function buildWeekDaysFromWeekStart(weekStartDate: string): DaySlot[] {
+  return buildWeekDays(new Date(`${weekStartDate}T00:00:00`));
+}
+
+function applyAvailabilityToDays(template: DaySlot[], existing: AvailabilityResponse | null): DaySlot[] {
+  if (!existing) return template;
+
+  return template.map((day) => {
+    const morningEntry = existing.entries.find(
+      (entry) => entry.date === day.isoDate && entry.startTime === '11:00',
+    );
+    const eveningEntry = existing.entries.find(
+      (entry) => entry.date === day.isoDate && entry.startTime === '17:00',
+    );
+
+    return {
+      ...day,
+      morning: morningEntry?.available ?? false,
+      evening: eveningEntry?.available ?? false,
+    };
+  });
+}
+
 /** Hours until Friday 23:59 Berlin time (deadline = 2 days before Monday). */
 function hoursUntilDeadline(monday: Date): number {
   const deadline = new Date(monday);
@@ -69,6 +94,7 @@ function hoursUntilDeadline(monday: Date): number {
 }
 
 export function AvailabilityPage({ role }: Props) {
+  const isManager = role === 'manager';
   const monday = getMondayOf(new Date());
   const weekStartDate = toIso(monday);
   const weekEnd = new Date(monday);
@@ -79,46 +105,90 @@ export function AvailabilityPage({ role }: Props) {
   const deadlinePassed = false; // TODO: remove — temporarily forced off for testing
   void hoursLeft;
 
-  const [days, setDays] = useState<DaySlot[]>(buildWeekDays(monday));
+  const initialDays = buildWeekDaysFromWeekStart(weekStartDate);
+  const [days, setDays] = useState<DaySlot[]>(initialDays);
   const [existingId, setExistingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+  const [weeklyAvailability, setWeeklyAvailability] = useState<AvailabilityResponse[]>([]);
 
   const storedUser = getStoredUser();
-  const employeeId = storedUser?.employeeId ?? null;
+  const employeeId = isManager ? (selectedEmployeeId || null) : (storedUser?.employeeId ?? null);
+  const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
+  const submittedCount = new Set(weeklyAvailability.map((availability) => availability.employeeId)).size;
+  const canEdit = Boolean(employeeId) && !isManager && !deadlinePassed;
 
   useEffect(() => {
-    if (!employeeId) { setLoading(false); return; }
+    if (!isManager) return;
 
+    setLoading(true);
+    Promise.all([
+      listEmployees({ active: true }),
+      getWeeklyAvailability(weekStartDate),
+    ])
+      .then(([employeeList, availabilities]) => {
+        setEmployees(employeeList);
+        setWeeklyAvailability(availabilities);
+        setSelectedEmployeeId((current) => {
+          if (current && employeeList.some((employee) => employee.id === current)) {
+            return current;
+          }
+
+          return employeeList[0]?.id ?? '';
+        });
+      })
+      .catch(() => {
+        setError('Failed to load employees or weekly availability. Try again.');
+      })
+      .finally(() => setLoading(false));
+  }, [isManager, weekStartDate]);
+
+  useEffect(() => {
+    if (isManager || !storedUser?.employeeId) return;
+
+    setLoading(true);
+    setError(null);
+    getEmployeeAvailability(storedUser.employeeId, weekStartDate)
+      .then((existing: AvailabilityResponse | null) => {
+        setExistingId(existing?.id ?? null);
+        setSaved(Boolean(existing));
+        setDays(applyAvailabilityToDays(buildWeekDaysFromWeekStart(weekStartDate), existing));
+      })
+      .catch(() => {
+        setError('Failed to load your availability. Try again.');
+      })
+      .finally(() => setLoading(false));
+  }, [isManager, storedUser?.employeeId, weekStartDate]);
+
+  useEffect(() => {
+    if (!isManager) return;
+
+    setError(null);
+    setExistingId(null);
+    setSaved(false);
+    setDays(buildWeekDaysFromWeekStart(weekStartDate));
+
+    if (!employeeId) return;
+
+    setLoading(true);
     getEmployeeAvailability(employeeId, weekStartDate)
       .then((existing: AvailabilityResponse | null) => {
-        if (!existing) return;
-        setExistingId(existing.id);
-        setSaved(true);
-        setDays(prev =>
-          prev.map(day => {
-            const morningEntry = existing.entries.find(
-              e => e.date === day.isoDate && e.startTime === '11:00',
-            );
-            const eveningEntry = existing.entries.find(
-              e => e.date === day.isoDate && e.startTime === '17:00',
-            );
-            return {
-              ...day,
-              morning: morningEntry?.available ?? false,
-              evening: eveningEntry?.available ?? false,
-            };
-          }),
-        );
+        setExistingId(existing?.id ?? null);
+        setSaved(Boolean(existing));
+        setDays(applyAvailabilityToDays(buildWeekDaysFromWeekStart(weekStartDate), existing));
       })
-      .catch(() => {})
+      .catch(() => {
+        setError('Failed to load employee availability. Try again.');
+      })
       .finally(() => setLoading(false));
-  }, [employeeId, weekStartDate]);
+  }, [employeeId, isManager, weekStartDate]);
 
   function toggle(index: number, slot: 'morning' | 'evening') {
-    if (deadlinePassed) return;
+    if (!canEdit) return;
     setDays(prev => prev.map((d, i) => i === index ? { ...d, [slot]: !d[slot] } : d));
     setSaved(false);
   }
@@ -139,10 +209,13 @@ export function AvailabilityPage({ role }: Props) {
     setError(null);
     try {
       if (existingId) {
-        await updateAvailability(existingId, { employeeId, weekStartDate, entries });
+        await updateAvailability(existingId, { entries });
       } else {
         const res = await submitAvailability({ employeeId, weekStartDate, entries });
         setExistingId(res.id);
+      }
+      if (isManager) {
+        setWeeklyAvailability(await getWeeklyAvailability(weekStartDate));
       }
       setSaved(true);
     } catch (e: unknown) {
@@ -167,10 +240,15 @@ export function AvailabilityPage({ role }: Props) {
         {/* Header */}
         <div className={styles.header}>
           <div>
-            <h1 className={styles.title}>My Availability</h1>
+            <h1 className={styles.title}>{isManager ? 'Team Availability' : 'My Availability'}</h1>
             <p className={styles.subtitle}>Week of {weekLabel}</p>
           </div>
-          {!deadlinePassed && (
+          {isManager && (
+            <div className={styles.timerBadge}>
+              {submittedCount}/{employees.length} submitted
+            </div>
+          )}
+          {!isManager && !deadlinePassed && (
             <div className={styles.timerBadge}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -178,23 +256,51 @@ export function AvailabilityPage({ role }: Props) {
               {hoursLeft}h left
             </div>
           )}
-          {deadlinePassed && (
+          {!isManager && deadlinePassed && (
             <div className={styles.timerBadge} style={{ background: '#FEE2E2', borderColor: '#FCA5A5', color: '#991B1B' }}>
               Deadline passed
             </div>
           )}
         </div>
 
-        {!employeeId && (
+        {!employeeId && !isManager && (
           <div className={styles.capacityCard} style={{ borderColor: '#FCA5A5', background: '#FEF2F2' }}>
             <div className={styles.capacityTitle} style={{ color: '#991B1B' }}>No employee account linked</div>
             <div className={styles.capacityText}>Ask your manager to link this login to an employee profile.</div>
           </div>
         )}
 
+        {isManager && (
+          <div className={styles.capacityCard}>
+            <div className={styles.capacityTitle}>Employee</div>
+            <label className={styles.selectLabel} htmlFor="availability-employee-select">
+              Employee
+            </label>
+            <select
+              id="availability-employee-select"
+              className={styles.selectInput}
+              value={selectedEmployeeId}
+              onChange={(event) => setSelectedEmployeeId(event.target.value)}
+            >
+              {employees.length === 0 && <option value="">No active employees</option>}
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.firstName} {employee.lastName}
+                </option>
+              ))}
+            </select>
+            <div className={styles.capacityText}>View weekly availability for any active employee.</div>
+            {selectedEmployee && (
+              <div className={styles.capacityText}>
+                {selectedEmployee.employeeRole} • {selectedEmployee.employmentType.toLowerCase().replace('_', ' ')}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Info card */}
         <div className={styles.capacityCard}>
-          <div className={styles.capacityTitle}>Shift Times</div>
+          <div className={styles.capacityTitle}>{isManager ? 'Availability Legend' : 'Shift Times'}</div>
           <div className={styles.capacityRow}>
             <span>🌤</span>
             <span className={styles.capacityText}>Morning Shift — 11:00 – 17:00</span>
@@ -203,7 +309,17 @@ export function AvailabilityPage({ role }: Props) {
             <span>🌙</span>
             <span className={styles.capacityText}>Evening Shift — 17:00 – 23:00</span>
           </div>
+          {isManager && (
+            <div className={styles.capacityText}>Managers can review availability here, but only employees can submit or update it.</div>
+          )}
         </div>
+
+        {isManager && error && (
+          <div className={styles.capacityCard} style={{ borderColor: '#FCA5A5', background: '#FEF2F2' }}>
+            <div className={styles.capacityTitle} style={{ color: '#991B1B' }}>Availability unavailable</div>
+            <div className={styles.capacityText}>{error}</div>
+          </div>
+        )}
 
         {loading ? (
           <div className={styles.capacityCard}>
@@ -226,7 +342,7 @@ export function AvailabilityPage({ role }: Props) {
                       key={slot}
                       className={[styles.shiftBtn, isSelected ? styles.shiftBtnSelected : ''].join(' ')}
                       onClick={() => toggle(i, slot)}
-                      disabled={deadlinePassed || !employeeId}
+                      disabled={!canEdit}
                     >
                       <span className={styles.shiftBtnLabel}>{label}</span>
                       <span className={styles.shiftBtnTime}>{time}</span>
@@ -248,32 +364,37 @@ export function AvailabilityPage({ role }: Props) {
         <div style={{ height: 160 }} />
       </div>
 
-      {/* Fixed submit area */}
-      <div className={styles.submitWrap}>
-        {error && (
-          <div className={styles.successMsg} style={{ background: '#FEF2F2', borderColor: '#FCA5A5', color: '#991B1B' }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            {error}
-          </div>
-        )}
-        {saved && !error && (
-          <div className={styles.successMsg}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Availability saved — {totalSelected} slot{totalSelected !== 1 ? 's' : ''} selected
-          </div>
-        )}
-        <button
-          className={[styles.submitBtn, (totalSelected === 0 || deadlinePassed || !employeeId) ? styles.submitBtnDisabled : ''].join(' ')}
-          onClick={handleSubmit}
-          disabled={totalSelected === 0 || deadlinePassed || !employeeId || saving}
-        >
-          {saving ? 'Saving…' : existingId ? `Update Availability (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})` : `Submit Availability${totalSelected > 0 ? ` (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})` : ''}`}
-        </button>
-      </div>
+      {!isManager && (
+        <div className={styles.submitWrap}>
+          {error && (
+            <div className={styles.successMsg} style={{ background: '#FEF2F2', borderColor: '#FCA5A5', color: '#991B1B' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {error}
+            </div>
+          )}
+          {saved && !error && (
+            <div className={styles.successMsg}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Availability saved — {totalSelected} slot{totalSelected !== 1 ? 's' : ''} selected
+            </div>
+          )}
+          <button
+            className={[styles.submitBtn, (totalSelected === 0 || !canEdit) ? styles.submitBtnDisabled : ''].join(' ')}
+            onClick={handleSubmit}
+            disabled={totalSelected === 0 || !canEdit || saving}
+          >
+            {saving
+              ? 'Saving…'
+              : existingId
+                ? `Update Availability (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})`
+                : `Submit Availability${totalSelected > 0 ? ` (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})` : ''}`}
+          </button>
+        </div>
+      )}
 
       <BottomNav role={role} />
     </PhoneShell>

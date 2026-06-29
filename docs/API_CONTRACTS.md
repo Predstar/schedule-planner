@@ -286,13 +286,10 @@ POST /api/v1/availability
 Access:
 
 * `EMPLOYEE` for own availability
-* `ADMIN`
-* `MANAGER`
 
 Deadline rule:
 
 * `EMPLOYEE` self-service submission is allowed only before `weekStartDate - 2 days at 00:00` in the `Europe/Berlin` timezone.
-* `ADMIN` and `MANAGER` may submit on behalf of an employee at any time.
 
 Request:
 
@@ -348,13 +345,10 @@ PUT /api/v1/availability/{availabilityId}
 Access:
 
 * `EMPLOYEE` for own availability before deadline
-* `ADMIN`
-* `MANAGER`
 
 Deadline rule:
 
 * `EMPLOYEE` self-service updates are allowed only before `weekStartDate - 2 days at 00:00` in the `Europe/Berlin` timezone.
-* `ADMIN` and `MANAGER` may update on behalf of an employee at any time.
 
 ## Get Employee Availability
 

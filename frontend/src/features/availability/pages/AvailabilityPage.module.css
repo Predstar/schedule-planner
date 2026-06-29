@@ -72,6 +72,32 @@
   color: var(--text-sub);
 }
 
+.selectLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.selectInput {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 10px;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 /* Day card */
 .dayCard {
   background: var(--card);

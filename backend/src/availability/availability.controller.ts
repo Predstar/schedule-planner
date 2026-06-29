@@ -38,4 +38,13 @@ export class AvailabilityController {
   list(@Query() query: AvailabilityWeekQueryDto): Promise<AvailabilityResponseDto[]> {
     return this.availabilityService.listAvailability(query);
   }
+
+  @Get(':employeeId')
+  getForEmployee(
+    @Param('employeeId') employeeId: string,
+    @Query() query: AvailabilityWeekQueryDto,
+    @CurrentUser() authUser: AuthUserPayload,
+  ): Promise<AvailabilityResponseDto> {
+    return this.availabilityService.getEmployeeAvailability(employeeId, query, authUser);
+  }
 }

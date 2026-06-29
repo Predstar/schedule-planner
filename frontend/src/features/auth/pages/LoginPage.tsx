@@ -1,23 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { login } from '../services/auth.service';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import styles from './LoginPage.module.css';
 
-type Role = 'manager' | 'employee';
-
-const DEMO_CREDS: Record<Role, { email: string; password: string }> = {
-  manager:  { email: 'manager@authentikka.com',  password: 'manager123'  },
-  employee: { email: 'employee@authentikka.com', password: 'employee123' },
-};
-
-const REDIRECT: Record<Role, string> = {
-  manager:  '/manager/schedule',
-  employee: '/employee/shifts',
-};
-
 export function LoginPage() {
   const navigate = useNavigate();
-  const [role, setRole]           = useState<Role>('manager');
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [showPw, setShowPw]       = useState(false);
@@ -27,21 +15,23 @@ export function LoginPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent]   = useState(false);
 
-  function handleRoleChange(r: Role) {
-    setRole(r);
-    setError('');
-  }
-
-  function handleLogin() {
+  async function handleLogin() {
     setError('');
     if (!email || !password) { setError('Please enter your email and password.'); return; }
-    const match = DEMO_CREDS[role];
-    if (email === match.email && password === match.password) {
-      setLoading(true);
-      setTimeout(() => navigate(REDIRECT[role]), 800);
-    } else {
+    setLoading(true);
+    try {
+      const res = await login({ email, password });
+      const systemRole = res.user.systemRole;
+      if (systemRole === 'EMPLOYEE') {
+        navigate('/employee/shifts');
+      } else {
+        navigate('/manager/schedule');
+      }
+    } catch {
       setError('Invalid email or password. Please try again.');
       setPassword('');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -62,19 +52,6 @@ export function LoginPage() {
           <div className={styles.logoTitle}>Authentikka</div>
           <div className={styles.logoSub}>Shift planning app</div>
           <div className={styles.logoRule} />
-        </div>
-
-        {/* Role toggle */}
-        <p className={styles.roleLabel}>Sign in as</p>
-        <div className={styles.roleSelector}>
-          <button
-            className={[styles.roleBtn, role === 'manager' ? styles.roleBtnActive : ''].join(' ')}
-            onClick={() => handleRoleChange('manager')}
-          >Manager</button>
-          <button
-            className={[styles.roleBtn, role === 'employee' ? styles.roleBtnActive : ''].join(' ')}
-            onClick={() => handleRoleChange('employee')}
-          >Employee</button>
         </div>
 
         {/* Error */}
@@ -154,19 +131,14 @@ export function LoginPage() {
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
 
-        {/* Divider */}
-        <div className={styles.divider}>
-          <span className={styles.dividerLine} />
-          <span className={styles.dividerText}>Demo credentials</span>
-          <span className={styles.dividerLine} />
+        {/* Register link */}
+        <div style={{ textAlign: 'center', marginTop: 18 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Don't have an account? </span>
+          <Link to="/register" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-light)', textDecoration: 'none' }}>
+            Sign up
+          </Link>
         </div>
 
-        {/* Credentials hint */}
-        <div className={styles.credsCard}>
-          <div className={styles.credsTitle}>Demo credentials</div>
-          <div className={styles.credsRow}><span>Manager</span><span>manager@authentikka.com / manager123</span></div>
-          <div className={styles.credsRow}><span>Employee</span><span>employee@authentikka.com / employee123</span></div>
-        </div>
       </div>
 
       {/* Forgot Password Modal */}

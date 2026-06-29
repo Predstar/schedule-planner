@@ -16,6 +16,10 @@ describe('AuthService', () => {
     signAsync: vi.fn(),
   } as unknown as JwtService;
 
+  const emailService = {
+    sendConfirmationEmail: vi.fn(),
+  } as any;
+
   let authService: AuthService;
 
   beforeEach(() => {

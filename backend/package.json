@@ -6,7 +6,8 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "test": "vitest run",
-    "prisma:generate": "prisma generate --schema prisma/schema.prisma"
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "seed": "ts-node --project tsconfig.json -e \"require('dotenv/config')\" prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.8",
@@ -23,12 +24,14 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.14.0",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.8",
     "@nestjs/testing": "^10.4.8",
     "@types/bcrypt": "^6.0.0",
+    "@types/luxon": "^3.7.2",
     "@types/node": "^22.9.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.2.0",

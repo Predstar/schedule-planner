@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum SystemRole {
@@ -36,9 +37,10 @@ model User {
   systemRole   SystemRole @map("system_role")
   employeeId   String?    @unique @map("employee_id") @db.Uuid
   employee     Employee?  @relation(fields: [employeeId], references: [id])
-  active       Boolean    @default(true)
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  active            Boolean   @default(false)
+  confirmationToken String?   @unique @map("confirmation_token")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -57,6 +59,7 @@ model Employee {
   updatedAt       DateTime       @updatedAt @map("updated_at")
   user            User?
   availabilities  Availability[]
+  assignments     Assignment[]
 
   @@map("employees")
 }
@@ -97,6 +100,39 @@ model Shift {
   requiredCount Int          @map("required_count")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
+  assignments   Assignment[]
 
   @@map("shifts")
+}
+
+enum ScheduleStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+model Schedule {
+  id            String         @id @default(uuid()) @db.Uuid
+  weekStartDate DateTime       @unique @map("week_start_date") @db.Date
+  status        ScheduleStatus @default(DRAFT)
+  assignments   Assignment[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@map("schedules")
+}
+
+model Assignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  scheduleId String   @map("schedule_id") @db.Uuid
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  shiftId    String   @map("shift_id") @db.Uuid
+  shift      Shift    @relation(fields: [shiftId], references: [id])
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([scheduleId, shiftId, employeeId])
+  @@map("assignments")
 }

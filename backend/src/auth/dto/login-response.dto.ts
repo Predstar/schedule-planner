@@ -4,6 +4,7 @@ class LoginUserDto {
   id!: string;
   email!: string;
   systemRole!: SystemRole;
+  employeeId!: string | null;
 }
 
 export class LoginResponseDto {

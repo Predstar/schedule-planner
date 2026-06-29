@@ -27,6 +27,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
+  app.enableCors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://192.168.100.142:5173'], credentials: true });
   await app.listen(3000);
 }
 

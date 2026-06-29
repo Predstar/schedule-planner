@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
+import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ManagerDashboardPage } from '../features/schedules/pages/ManagerDashboardPage';
 import { ManagerTeamPage } from '../features/employees/pages/ManagerTeamPage';
 import { AvailabilityPage } from '../features/availability/pages/AvailabilityPage';
@@ -12,7 +13,8 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"         element={<LoginPage />} />
+        <Route path="/register"      element={<RegisterPage />} />
 
         {/* Manager routes */}
         <Route path="/manager/schedule"     element={<ManagerDashboardPage />} />

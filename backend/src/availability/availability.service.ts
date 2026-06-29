@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppException } from '../shared/exceptions/app.exception';
@@ -69,10 +69,14 @@ function mapAvailability(record: AvailabilityRecord): AvailabilityResponseDto {
 
 @Injectable()
 export class AvailabilityService {
+  private readonly now: () => DateTime;
+
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly nowProvider: () => DateTime = () => DateTime.utc(),
-  ) {}
+    @Optional() nowProvider?: () => DateTime,
+  ) {
+    this.now = nowProvider ?? (() => DateTime.utc());
+  }
 
   async submitAvailability(
     dto: SubmitAvailabilityDto,
@@ -232,7 +236,7 @@ export class AvailabilityService {
     const deadline = DateTime.fromISO(weekStartDate, { zone: BERLIN_TIMEZONE })
       .startOf('day')
       .minus({ days: 2 });
-    const now = this.nowProvider().setZone(BERLIN_TIMEZONE);
+    const now = this.now().setZone(BERLIN_TIMEZONE);
 
     if (now >= deadline) {
       throw new AppException(

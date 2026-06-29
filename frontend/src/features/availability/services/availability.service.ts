@@ -4,49 +4,32 @@ import type {
   AvailabilityResponse,
 } from '../../../shared/types/api.types';
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
-
-const MOCK_AVAILABILITY: AvailabilityResponse[] = [];
-
-// ─── AVAILABILITY SERVICE ─────────────────────────────────────────────────────
-
 export async function submitAvailability(data: SubmitAvailabilityRequest): Promise<AvailabilityResponse> {
-  // MOCK — replace with:
-  // return apiClient.post<AvailabilityResponse>('/availability', data);
-  const existing = MOCK_AVAILABILITY.find(
-    a => a.employeeId === data.employeeId && a.weekStartDate === data.weekStartDate,
-  );
-  if (existing) throw { statusCode: 409, code: 'AVAILABILITY_ALREADY_SUBMITTED', message: 'Already submitted.' };
-  const record: AvailabilityResponse = { id: `avail-${Date.now()}`, ...data, status: 'SUBMITTED' };
-  MOCK_AVAILABILITY.push(record);
-  return record;
+  return apiClient.post<AvailabilityResponse>('/availability', data);
 }
 
 export async function updateAvailability(
   availabilityId: string,
   data: SubmitAvailabilityRequest,
 ): Promise<AvailabilityResponse> {
-  // MOCK — replace with:
-  // return apiClient.put<AvailabilityResponse>(`/availability/${availabilityId}`, data);
-  const idx = MOCK_AVAILABILITY.findIndex(a => a.id === availabilityId);
-  if (idx === -1) throw { statusCode: 404, code: 'NOT_FOUND', message: 'Availability record not found.' };
-  MOCK_AVAILABILITY[idx] = { ...MOCK_AVAILABILITY[idx], ...data, status: 'UPDATED' };
-  return MOCK_AVAILABILITY[idx];
+  return apiClient.put<AvailabilityResponse>(`/availability/${availabilityId}`, data);
 }
 
 export async function getEmployeeAvailability(
   employeeId: string,
   weekStartDate: string,
 ): Promise<AvailabilityResponse | null> {
-  // MOCK — replace with:
-  // return apiClient.get<AvailabilityResponse>(`/employees/${employeeId}/availability?weekStartDate=${weekStartDate}`);
-  return MOCK_AVAILABILITY.find(
-    a => a.employeeId === employeeId && a.weekStartDate === weekStartDate,
-  ) ?? null;
+  try {
+    return await apiClient.get<AvailabilityResponse>(
+      `/availability/${employeeId}?weekStartDate=${weekStartDate}`,
+    );
+  } catch (e: unknown) {
+    const err = e as { statusCode?: number; code?: string };
+    if (err?.statusCode === 404 || err?.code === 'AVAILABILITY_NOT_FOUND') return null;
+    throw e;
+  }
 }
 
 export async function getWeeklyAvailability(weekStartDate: string): Promise<AvailabilityResponse[]> {
-  // MOCK — replace with:
-  // return apiClient.get<AvailabilityResponse[]>(`/availability?weekStartDate=${weekStartDate}`);
-  return MOCK_AVAILABILITY.filter(a => a.weekStartDate === weekStartDate);
+  return apiClient.get<AvailabilityResponse[]>(`/availability?weekStartDate=${weekStartDate}`);
 }

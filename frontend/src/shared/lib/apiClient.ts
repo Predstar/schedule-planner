@@ -1,7 +1,7 @@
 // Base API client — swap BASE_URL to point at the real NestJS server when ready.
 // All service files go through this — never call fetch directly in components.
 
-const BASE_URL = '/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
 
 function getToken(): string | null {
   return localStorage.getItem('accessToken');

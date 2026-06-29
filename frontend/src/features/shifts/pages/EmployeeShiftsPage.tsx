@@ -1,119 +1,141 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { getMyRoleSchedule } from '../../schedules/services/schedules.service';
+import type { Assignment } from '../../../shared/types/api.types';
 import styles from './EmployeeShiftsPage.module.css';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAY_LABELS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
-interface Shift {
-  id: string;
-  date: string;        // "2026-6-9"
-  dayLabel: string;    // "Tuesday"
-  dateLabel: string;   // "Jun 9"
-  start: string;
-  end: string;
-  hours: number;
-  section: string;
-  status: 'assigned' | 'open';
+function mondayOfWeek(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
-const MY_SHIFTS: Shift[] = [
-  { id:'s1',  date:'2026-6-9',  dayLabel:'Tuesday',  dateLabel:'Jun 9',  start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-  { id:'s2',  date:'2026-6-12', dayLabel:'Friday',   dateLabel:'Jun 12', start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-  { id:'s3',  date:'2026-6-16', dayLabel:'Tuesday',  dateLabel:'Jun 16', start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-  { id:'s4',  date:'2026-6-19', dayLabel:'Friday',   dateLabel:'Jun 19', start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-  { id:'s5',  date:'2026-6-23', dayLabel:'Tuesday',  dateLabel:'Jun 23', start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-  { id:'s6',  date:'2026-6-26', dayLabel:'Friday',   dateLabel:'Jun 26', start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-  { id:'s7',  date:'2026-6-30', dayLabel:'Tuesday',  dateLabel:'Jun 30', start:'09:00', end:'17:00', hours:8, section:'Floor', status:'assigned' },
-];
-
-const SHIFT_DAYS = new Set(MY_SHIFTS.map(s => {
-  const [,m,d] = s.date.split('-');
-  return `${m}-${d}`;
-}));
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 
 function getFirstDayOfWeek(year: number, month: number) {
-  // 0=Sun,1=Mon,...6=Sat → convert to Mon-first index
   const raw = new Date(year, month, 1).getDay();
   return raw === 0 ? 6 : raw - 1;
 }
 
+function calcHours(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  return Math.round(((eh * 60 + em) - (sh * 60 + sm)) / 60);
+}
+
 export function EmployeeShiftsPage() {
-  const [calYear,  setCalYear]  = useState(2026);
-  const [calMonth, setCalMonth] = useState(5); // June = 5
-  const [selectedDate, setSelectedDate] = useState<string>('2026-6-12');
+  const today = new Date();
+  const [calYear,  setCalYear]  = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
-  const totalHours  = MY_SHIFTS.reduce((s, sh) => s + sh.hours, 0);
-  const totalShifts = MY_SHIFTS.length;
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
 
-  const daysInMonth  = getDaysInMonth(calYear, calMonth);
-  const firstWeekDay = getFirstDayOfWeek(calYear, calMonth);
+  const fetchWeek = useCallback(async (monday: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const schedule = await getMyRoleSchedule(monday);
+      setAssignments(prev => {
+        const existing = prev.filter(a => a.date.slice(0, 7) !== monday.slice(0, 7));
+        return [...existing, ...schedule.assignments];
+      });
+    } catch (e: unknown) {
+      const err = e as { statusCode?: number };
+      if (err?.statusCode === 404) {
+        // no published schedule this week — that's fine
+      } else {
+        setError('Could not load shifts.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const firstDay = new Date(calYear, calMonth, 1);
+    const lastDay  = new Date(calYear, calMonth + 1, 0);
+    const mondays  = new Set<string>();
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      mondays.add(mondayOfWeek(new Date(d)));
+    }
+    mondays.forEach(m => fetchWeek(m));
+  }, [calYear, calMonth, fetchWeek]);
 
   function prevMonth() {
     if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
     else setCalMonth(m => m - 1);
+    setAssignments([]);
   }
   function nextMonth() {
     if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
     else setCalMonth(m => m + 1);
+    setAssignments([]);
   }
 
-  const selectedShifts = MY_SHIFTS.filter(s => s.date === selectedDate);
-  const selectedShift  = selectedShifts[0] ?? null;
-
-  const upcomingShifts = MY_SHIFTS.filter(s => {
-    const [y,m,d] = s.date.split('-').map(Number);
-    const sd = new Date(y, m - 1, d);
-    return sd >= new Date(2026, 5, 12); // on or after Jun 12
-  });
-
-  function formatSelectedLabel() {
-    if (!selectedDate) return '';
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const assignmentsByDate: Record<string, Assignment[]> = {};
+  for (const a of assignments) {
+    (assignmentsByDate[a.date] ??= []).push(a);
   }
 
-  function hasShift(day: number) {
-    return SHIFT_DAYS.has(`${calMonth + 1}-${day}`);
-  }
+  const totalHours  = assignments.reduce((s, a) => s + calcHours(a.startTime, a.endTime), 0);
+  const totalShifts = assignments.length;
 
-  function isSelected(day: number) {
-    return selectedDate === `${calYear}-${calMonth + 1}-${day}`;
-  }
+  const daysInMonth  = getDaysInMonth(calYear, calMonth);
+  const firstWeekDay = getFirstDayOfWeek(calYear, calMonth);
 
-  function isToday(day: number) {
-    const t = new Date();
-    return t.getFullYear() === calYear && t.getMonth() === calMonth && t.getDate() === day;
-  }
-
-  function selectDay(day: number) {
-    setSelectedDate(`${calYear}-${calMonth + 1}-${day}`);
-  }
-
-  // Build calendar grid (Mon-first)
   const calCells: Array<number | null> = [
     ...Array(firstWeekDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
   while (calCells.length % 7 !== 0) calCells.push(null);
 
+  function padDay(day: number) {
+    return `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
+
+  function hasShift(day: number)  { return (assignmentsByDate[padDay(day)]?.length ?? 0) > 0; }
+  function isSelected(day: number){ return selectedDate === padDay(day); }
+  function isToday(day: number)   {
+    return today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === day;
+  }
+
+  const selectedAssignments = selectedDate ? (assignmentsByDate[selectedDate] ?? []) : [];
+
+  const upcomingAssignments = assignments
+    .filter(a => a.date >= today.toISOString().slice(0, 10))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  function formatSelectedLabel() {
+    if (!selectedDate) return '';
+    const dt = new Date(selectedDate + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
   return (
     <PhoneShell>
       <StatusBar />
       <div className={styles.page}>
 
-        {/* Header */}
         <div className={styles.header}>
           <h1 className={styles.title}>My Shifts</h1>
-          <p className={styles.subtitle}>{totalHours}h total · {totalShifts} shifts</p>
+          <p className={styles.subtitle}>
+            {loading ? 'Loading…' : `${totalHours}h total · ${totalShifts} shifts`}
+          </p>
         </div>
+
+        {error && <p style={{ color: '#B91C1C', padding: '0 16px', fontSize: 13 }}>{error}</p>}
 
         {/* Calendar */}
         <div className={styles.calCard}>
@@ -140,7 +162,7 @@ export function EmployeeShiftsPage() {
                       isSelected(day) ? styles.calDaySelected : '',
                       isToday(day) && !isSelected(day) ? styles.calDayToday : '',
                     ].join(' ')}
-                    onClick={() => selectDay(day)}
+                    onClick={() => setSelectedDate(prev => prev === padDay(day) ? '' : padDay(day))}
                   >
                     {day}
                     {hasShift(day) && !isSelected(day) && (
@@ -161,22 +183,22 @@ export function EmployeeShiftsPage() {
               <button className={styles.clearBtn} onClick={() => setSelectedDate('')}>Clear</button>
             </div>
 
-            {selectedShift ? (
-              <div className={styles.selectedShiftCard}>
+            {selectedAssignments.length > 0 ? selectedAssignments.map(a => (
+              <div key={a.assignmentId} className={styles.selectedShiftCard}>
                 <div className={styles.selectedShiftAccent} />
                 <div className={styles.selectedShiftBody}>
                   <div className={styles.selectedShiftTime}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    {selectedShift.start} – {selectedShift.end} ({selectedShift.hours}h)
+                    {a.startTime} – {a.endTime} ({calcHours(a.startTime, a.endTime)}h)
                   </div>
                   <div className={styles.selectedShiftSection}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    {selectedShift.section.toLowerCase()}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {a.employeeName}
                   </div>
                 </div>
-                <span className={styles.assignedBadge}>{selectedShift.status}</span>
+                <span className={styles.assignedBadge}>{a.employeeRole.toLowerCase()}</span>
               </div>
-            ) : (
+            )) : (
               <p className={styles.noShift}>No shift on this day.</p>
             )}
           </div>
@@ -184,22 +206,26 @@ export function EmployeeShiftsPage() {
 
         {/* Upcoming shifts */}
         <div className={styles.upcomingSection}>
-          <p className={styles.upcomingLabel}>UPCOMING ({upcomingShifts.length})</p>
+          <p className={styles.upcomingLabel}>UPCOMING ({upcomingAssignments.length})</p>
           <div className={styles.upcomingList}>
-            {upcomingShifts.map(shift => {
-              const [,m,d] = shift.date.split('-');
+            {upcomingAssignments.length === 0 && !loading && (
+              <p className={styles.noShift}>No upcoming shifts. Ask your manager to publish the schedule.</p>
+            )}
+            {upcomingAssignments.map(a => {
+              const [, m, d] = a.date.split('-');
               const monthShort = MONTHS[Number(m) - 1].slice(0, 3);
+              const dow = new Date(a.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
               return (
-                <div key={shift.id} className={styles.upcomingCard} onClick={() => setSelectedDate(shift.date)}>
+                <div key={a.assignmentId} className={styles.upcomingCard} onClick={() => setSelectedDate(a.date)}>
                   <div className={styles.upcomingDateBadge}>
                     <span className={styles.upcomingMonth}>{monthShort}</span>
                     <span className={styles.upcomingDay}>{d}</span>
                   </div>
                   <div className={styles.upcomingInfo}>
-                    <div className={styles.upcomingTime}>{shift.start} – {shift.end} ({shift.hours}h)</div>
-                    <div className={styles.upcomingMeta}>{shift.section} · {shift.dayLabel}</div>
+                    <div className={styles.upcomingTime}>{a.startTime} – {a.endTime} ({calcHours(a.startTime, a.endTime)}h)</div>
+                    <div className={styles.upcomingMeta}>{a.employeeRole.toLowerCase()} · {dow}</div>
                   </div>
-                  <span className={styles.sectionBadge}>{shift.section.toLowerCase()}</span>
+                  <span className={styles.sectionBadge}>{a.employeeRole.toLowerCase()}</span>
                 </div>
               );
             })}

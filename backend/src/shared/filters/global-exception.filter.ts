@@ -41,6 +41,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return this.build(exception.getStatus(), 'HTTP_ERROR', exception.message, []);
     }
 
+    console.error('[UnhandledException]', exception);
     return this.build(500, 'INTERNAL_SERVER_ERROR', 'Internal server error', []);
   }
 

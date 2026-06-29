@@ -124,9 +124,25 @@ Handles:
 
 The application does not support public self-registration.
 
+The initial `ADMIN` account is provisioned through a backend bootstrap command using environment variables.
+
 ### users
 
 Handles system user accounts.
+
+User account data owns:
+
+* Login email
+* Password hash
+* System role
+* Account active status
+* Optional manager first and last name
+
+For employee-linked accounts:
+
+* `users.employeeId` links the account to an employee profile.
+* `users.email` is the employee login credential.
+* `users.email` must match the linked `employees.email`.
 
 Rules:
 
@@ -149,6 +165,17 @@ Employee profile includes:
 * Employee role
 * Weekly hour limit
 * Active status
+
+Employee profile data owns:
+
+* Employee identity and contact data
+* Scheduling role
+* Employment settings
+
+For employee-linked accounts:
+
+* `employees` is the source of truth for employee profile identity data.
+* `employees.email` must match the linked employee user's login email.
 
 Employee profile does not include:
 

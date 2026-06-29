@@ -57,6 +57,87 @@ describe('UsersService', () => {
     });
   });
 
+  it('creates an admin account during bootstrap', async () => {
+    prismaService.user.findUnique = vi.fn().mockResolvedValue(null);
+    prismaService.user.create = vi.fn().mockResolvedValue({
+      id: 'admin-1',
+      email: 'admin@restaurant.com',
+      passwordHash: hashSync('temporaryPassword123', 4),
+      firstName: 'Alice',
+      lastName: 'Admin',
+      systemRole: 'ADMIN',
+      employeeId: null,
+      active: true,
+    });
+
+    await expect(
+      usersService.ensureAdminAccount({
+        email: 'admin@restaurant.com',
+        password: 'temporaryPassword123',
+        firstName: 'Alice',
+        lastName: 'Admin',
+      }),
+    ).resolves.toEqual({
+      user: {
+        id: 'admin-1',
+        email: 'admin@restaurant.com',
+        systemRole: 'ADMIN',
+        active: true,
+      },
+      created: true,
+    });
+  });
+
+  it('returns the existing admin account during bootstrap', async () => {
+    prismaService.user.findUnique = vi.fn().mockResolvedValue({
+      id: 'admin-1',
+      email: 'admin@restaurant.com',
+      systemRole: 'ADMIN',
+      active: true,
+    });
+
+    await expect(
+      usersService.ensureAdminAccount({
+        email: 'admin@restaurant.com',
+        password: 'temporaryPassword123',
+        firstName: 'Alice',
+        lastName: 'Admin',
+      }),
+    ).resolves.toEqual({
+      user: {
+        id: 'admin-1',
+        email: 'admin@restaurant.com',
+        systemRole: 'ADMIN',
+        active: true,
+      },
+      created: false,
+    });
+  });
+
+  it('rejects admin bootstrap when the email belongs to a non-admin user', async () => {
+    prismaService.user.findUnique = vi.fn().mockResolvedValue({
+      id: 'manager-1',
+      email: 'admin@restaurant.com',
+      systemRole: 'MANAGER',
+      active: true,
+    });
+
+    try {
+      await usersService.ensureAdminAccount({
+        email: 'admin@restaurant.com',
+        password: 'temporaryPassword123',
+        firstName: 'Alice',
+        lastName: 'Admin',
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('ADMIN_BOOTSTRAP_EMAIL_CONFLICT');
+      return;
+    }
+
+    throw new Error('Expected ADMIN_BOOTSTRAP_EMAIL_CONFLICT');
+  });
+
   it('rejects duplicate email for manager creation', async () => {
     prismaService.user.findUnique = vi.fn().mockResolvedValue({ id: 'existing-user' });
 
@@ -102,6 +183,7 @@ describe('UsersService', () => {
       .mockResolvedValueOnce(null);
     prismaService.employee.findUnique = vi.fn().mockResolvedValue({
       id: '11111111-1111-1111-1111-111111111111',
+      email: 'john.doe@restaurant.com',
     });
     prismaService.user.create = vi.fn().mockResolvedValue({
       id: 'employee-user-1',
@@ -134,6 +216,7 @@ describe('UsersService', () => {
       .mockResolvedValueOnce({ id: 'existing-employee-user' });
     prismaService.employee.findUnique = vi.fn().mockResolvedValue({
       id: '11111111-1111-1111-1111-111111111111',
+      email: 'john.doe@restaurant.com',
     });
 
     try {
@@ -167,5 +250,27 @@ describe('UsersService', () => {
     }
 
     throw new Error('Expected USER_EMAIL_ALREADY_EXISTS');
+  });
+
+  it('rejects employee account creation when the email does not match the employee profile', async () => {
+    prismaService.user.findUnique = vi.fn().mockResolvedValue(null);
+    prismaService.employee.findUnique = vi.fn().mockResolvedValue({
+      id: '11111111-1111-1111-1111-111111111111',
+      email: 'john.doe@restaurant.com',
+    });
+
+    try {
+      await usersService.createEmployeeAccount({
+        email: 'john.login@restaurant.com',
+        password: 'temporaryPassword123',
+        employeeId: '11111111-1111-1111-1111-111111111111',
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('EMPLOYEE_EMAIL_MISMATCH');
+      return;
+    }
+
+    throw new Error('Expected EMPLOYEE_EMAIL_MISMATCH');
   });
 });

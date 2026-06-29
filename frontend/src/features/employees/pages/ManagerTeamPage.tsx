@@ -338,7 +338,14 @@ export function ManagerTeamPage() {
       doc.text(e.email, cols[3], y + 6);
       doc.setTextColor(e.active ? 22 : 153, e.active ? 101 : 27, e.active ? 52 : 27);
       doc.setFont('helvetica', 'bold');
-      doc.text(e.active ? 'Active' : 'Inactive', cols[4], y + 6);
+      doc.text(`${sign}${diff}h`, cols[6], y + 6);
+      const pct = Math.min(e.worked / e.target, 1);
+      const barX = cols[4] - 2; const barY = y + 7.5; const barW = 32;
+      doc.setFillColor(220, 210, 200);
+      doc.roundedRect(barX, barY, barW, 1.5, 0.5, 0.5, 'F');
+      const col = pct >= 0.75 ? [34,197,94] as const : pct >= 0.4 ? [245,158,11] as const : [239,68,68] as const;
+      doc.setFillColor(col[0], col[1], col[2]);
+      doc.roundedRect(barX, barY, barW * pct, 1.5, 0.5, 0.5, 'F');
       doc.setDrawColor(232, 221, 208); doc.setLineWidth(0.2);
       doc.line(margin, y + 9, pageW - margin, y + 9);
       y += 9;

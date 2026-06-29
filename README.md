@@ -34,3 +34,14 @@ Start the backend:
 ```bash
 pnpm --filter backend start:dev
 ```
+
+Create the initial admin account through the backend:
+
+```bash
+cd backend
+ADMIN_EMAIL="admin@restaurant.com" \
+ADMIN_PASSWORD="change-me" \
+ADMIN_FIRST_NAME="System" \
+ADMIN_LAST_NAME="Admin" \
+npm run create:admin
+```

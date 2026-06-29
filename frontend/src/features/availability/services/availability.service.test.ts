@@ -22,6 +22,8 @@ describe('availability.service', () => {
     });
 
     const updated = await updateAvailability(created.id, {
+      employeeId: created.employeeId,
+      weekStartDate: created.weekStartDate,
       entries: [
         {
           date: '2026-06-02',

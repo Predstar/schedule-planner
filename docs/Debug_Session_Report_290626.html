@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Debug Session Report – Schedule_Planner_Integration</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #222; background: #fff; }
+  .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm 18mm; }
+
+  h1 { font-size: 28pt; color: #1a3a6b; font-weight: 900; letter-spacing: 1px; }
+  .subtitle { font-size: 13pt; color: #444; margin-bottom: 6px; }
+  .report-title { font-size: 14pt; color: #1a3a6b; font-weight: bold; margin: 10px 0 2px; }
+  .generated { font-size: 10pt; color: #666; font-style: italic; margin-bottom: 20px; }
+
+  h2 { font-size: 16pt; color: #1a3a6b; border-bottom: 2px solid #1a3a6b; padding-bottom: 4px; margin: 30px 0 14px; }
+  h3 { font-size: 12pt; color: #1a3a6b; margin: 18px 0 8px; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 10pt; }
+  th { background: #1a3a6b; color: #fff; text-align: left; padding: 7px 10px; }
+  td { border: 1px solid #ddd; padding: 6px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f7f7; }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 3px; font-weight: bold; font-size: 9pt; white-space: nowrap; }
+  .modified { background: #fff3e0; color: #e65100; }
+  .fix      { background: #f3e5f5; color: #6a1b9a; }
+  .solved   { background: #e8f5e9; color: #2e7d32; }
+  .temp     { background: #fce4ec; color: #b71c1c; }
+  .pending  { background: #e3f2fd; color: #1565c0; }
+  .keep     { background: #e8f5e9; color: #2e7d32; }
+
+  .warning-box { background: #fff8e1; border-left: 4px solid #f9a825; padding: 10px 14px; margin: 14px 0; border-radius: 2px; font-size: 10pt; }
+  .info-box    { background: #e3f2fd; border-left: 4px solid #1565c0; padding: 10px 14px; margin: 14px 0; border-radius: 2px; font-size: 10pt; }
+  .success-box { background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 10px 14px; margin: 14px 0; border-radius: 2px; font-size: 10pt; }
+
+  code { background: #f4f4f4; border: 1px solid #ddd; border-radius: 3px; padding: 0 4px; font-size: 9pt; font-family: monospace; }
+  pre  { background: #f4f4f4; border: 1px solid #ddd; border-radius: 3px; padding: 10px 14px; font-size: 9pt; font-family: monospace; margin: 10px 0; white-space: pre-wrap; }
+  p  { margin-bottom: 10px; line-height: 1.5; }
+  ul { margin: 6px 0 12px 20px; line-height: 1.8; }
+
+  .timeline { border-left: 3px solid #1a3a6b; margin: 14px 0 14px 10px; padding-left: 18px; }
+  .timeline-item { margin-bottom: 14px; }
+  .timeline-item .time { font-size: 9pt; color: #888; font-style: italic; }
+  .timeline-item .event { font-weight: bold; color: #1a3a6b; }
+  .timeline-item .detail { font-size: 10pt; margin-top: 2px; }
+  .timeline-item.resolved .event { color: #2e7d32; }
+
+  @media print {
+    .page { padding: 15mm 15mm; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>AUTHENTIKKA</h1>
+  <div class="subtitle">Schedule Planner – Integration Debug Session</div>
+  <div class="report-title">Debug Session Report: Login 500 Error Investigation</div>
+  <div class="generated">Generated: 29 June 2026 &nbsp;|&nbsp; Updated: 29 June 2026 &nbsp;|&nbsp; Prepared by: Premit Desai</div>
+
+  <div class="success-box">
+    <strong>Root Cause Found &amp; Fixed:</strong> <code>import type</code> on <code>LoginRequestDto</code> in <code>auth.controller.ts</code> caused TypeScript to erase the class reference at compile time. NestJS emitted <code>[Function: anonymous]</code> as the parameter type metadata, so <code>@Body()</code> could not deserialize the request body. Fixed by changing to a regular <code>import</code>.
+  </div>
+
+  <div class="info-box">
+    <strong>Context:</strong> After the integration session (reported in Integration_Change_Report_290626.html), login was returning HTTP 500. This report documents the full investigation and all code changes made during this debug session.
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────── -->
+  <h2>1. Problem Statement</h2>
+
+  <p>Frontend at <code>http://localhost:5173</code> could not log in despite:</p>
+  <ul>
+    <li>Backend starting successfully (all routes mapped, port 3000)</li>
+    <li>Supabase database reachable (data visible in Table Editor)</li>
+    <li><code>backend/.env</code> containing correct <code>DATABASE_URL</code> with password <code>Authentikka%402025</code></li>
+    <li>Valid user credentials entered (e.g. <code>jay.manager@authentikka.de</code>)</li>
+  </ul>
+  <p>Browser DevTools Network tab showed: <code>api/v1/auth/login — 500 Internal Server Error</code></p>
+
+  <!-- ─────────────────────────────────────────────────────── -->
+  <h2>2. Investigation Timeline</h2>
+
+  <div class="timeline">
+
+    <div class="timeline-item">
+      <div class="time">Step 1</div>
+      <div class="event">Checked .env and Vite proxy config</div>
+      <div class="detail">
+        Both were correct. <code>DATABASE_URL</code> already had <code>%40</code> (URL-encoded <code>@</code>) as documented in the integration report.
+        Vite proxy <code>/api → http://localhost:3000</code> was present in <code>frontend/vite.config.ts</code>.
+        <br><strong>Result:</strong> Not the cause.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 2</div>
+      <div class="event">Verified database has users</div>
+      <div class="detail">
+        Supabase Table Editor confirmed the <code>users</code> table has ~15+ rows including managers
+        (<code>jay.manager@authentikka.de</code>, <code>premit1998@gmail.com</code>, etc.).
+        <br><strong>Result:</strong> Database has data — missing seed was not the issue.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 3</div>
+      <div class="event">Identified: backend swallowing all errors silently</div>
+      <div class="detail">
+        <code>GlobalExceptionFilter</code> was catching all unhandled exceptions and returning 500
+        with no <code>console.error</code> — so the backend terminal showed nothing on failure.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 4 — Fix applied</div>
+      <div class="event">Added console.error to GlobalExceptionFilter</div>
+      <div class="detail">
+        Added <code>console.error('[UNHANDLED ERROR]', exception)</code> before the 500 fallback
+        so errors are visible in the terminal. This is a permanent improvement.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 5 — Error revealed</div>
+      <div class="event">PrismaClientValidationError: email is undefined</div>
+      <div class="detail">
+        After restarting with the logging fix, the real error appeared:
+        <pre>PrismaClientValidationError:
+Invalid prismaService.user.findUnique() invocation
+  where: { email: undefined }
+Argument 'where' needs at least one of 'id', 'email' or 'employeeId'.</pre>
+        The DTO's <code>email</code> field was arriving as <code>undefined</code> at the service layer.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 6</div>
+      <div class="event">Checked frontend LoginPage and LoginRequestDto</div>
+      <div class="detail">
+        Both looked correct — frontend sends <code>{ email, password }</code> and the DTO expects the same fields.
+        Suspicion shifted to Prisma client or TypeScript compilation.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 7 — Attempted fix</div>
+      <div class="event">Ran npx prisma generate in backend folder</div>
+      <div class="detail">
+        Failed first with <code>EPERM: operation not permitted</code> — backend was running with a lock on the Prisma DLL.
+        Stopped backend, re-ran successfully. Deleted <code>dist/</code> folder and rebuilt.
+        <br><strong>Result:</strong> Still 500 after restart.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 8</div>
+      <div class="event">Added DTO logging to auth.service.ts</div>
+      <div class="detail">
+        Added <code>console.log('[LOGIN] dto received:', dto)</code> to see what the service actually receives.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 9 — Key finding</div>
+      <div class="event">dto received: [Function: anonymous]</div>
+      <div class="detail">
+        The log printed <code>[Function: anonymous]</code> instead of <code>{ email: '...', password: '...' }</code>.
+        NestJS's <code>@Body()</code> decorator uses TypeScript's <code>emitDecoratorMetadata</code> to know the
+        parameter type. It was receiving <code>Function</code> (anonymous) as the type — meaning the class
+        reference was erased at compile time.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="time">Step 10 — Root cause identified</div>
+      <div class="event">Inspected compiled dist/src/auth/auth.controller.js</div>
+      <div class="detail">
+        The compiled output confirmed the issue:
+        <pre>__metadata("design:paramtypes", [Function])</pre>
+        Instead of the expected:
+        <pre>__metadata("design:paramtypes", [login_request_dto_1.LoginRequestDto])</pre>
+        Cause: <code>auth.controller.ts</code> imported the DTO as <code>import type</code>.
+        TypeScript erases <code>type</code> imports completely at compile time — so no class reference
+        is available for <code>emitDecoratorMetadata</code> to emit.
+      </div>
+    </div>
+
+    <div class="timeline-item resolved">
+      <div class="time">Step 11 — ROOT CAUSE FIX ✓</div>
+      <div class="event">Changed import type → import in auth.controller.ts</div>
+      <div class="detail">
+        Changed:
+        <pre>import type { LoginRequestDto } from './dto/login-request.dto';</pre>
+        To:
+        <pre>import { LoginRequestDto } from './dto/login-request.dto';</pre>
+        Now TypeScript emits the real class reference in metadata, and <code>@Body()</code>
+        can correctly deserialize the JSON request body into a <code>LoginRequestDto</code> instance.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────── -->
+  <h2>3. Root Cause Explanation</h2>
+
+  <p>
+    NestJS's <code>@Body()</code> decorator relies on TypeScript's <code>emitDecoratorMetadata</code> feature
+    to know what class to instantiate when deserializing a request body. When a DTO is imported with
+    <code>import type</code>, TypeScript treats it as a type-only import and <strong>completely erases it</strong>
+    from the compiled JavaScript output. At runtime, the parameter type metadata becomes <code>[Function: anonymous]</code>
+    — a generic function placeholder — and NestJS cannot use it to deserialize the body, resulting in an empty object
+    where all fields are <code>undefined</code>.
+  </p>
+
+  <div class="warning-box">
+    <strong>Rule for this codebase:</strong> Any DTO class used in a controller parameter decorated with
+    <code>@Body()</code>, <code>@Param()</code>, or <code>@Query()</code> must be imported with a
+    <strong>regular import</strong>, never <code>import type</code>. Return type DTOs (used only as type
+    annotations on return values) are safe to import as <code>import type</code>.
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────── -->
+  <h2>4. All Code Changes This Session</h2>
+
+  <table>
+    <tr><th style="width:42%">File</th><th style="width:18%">Status</th><th>Change</th></tr>
+    <tr>
+      <td><code>backend/src/auth/auth.controller.ts</code></td>
+      <td><span class="badge solved">ROOT CAUSE FIX</span></td>
+      <td>
+        Changed <code>import type &#123; LoginRequestDto &#125;</code> → <code>import &#123; LoginRequestDto &#125;</code>.
+        Ensures TypeScript emits the real class reference in decorator metadata so <code>@Body()</code> works correctly.
+      </td>
+    </tr>
+    <tr>
+      <td><code>backend/src/shared/filters/global-exception.filter.ts</code></td>
+      <td><span class="badge keep">KEEP — PERMANENT FIX</span></td>
+      <td>
+        Added <code>console.error('[UNHANDLED ERROR]', exception)</code> before the 500 fallback.
+        Silent 500s make debugging impossible — this logging should stay permanently.
+      </td>
+    </tr>
+    <tr>
+      <td><code>backend/src/auth/auth.service.ts</code></td>
+      <td><span class="badge solved">CLEANED UP</span></td>
+      <td>
+        Temporarily added <code>console.log('[LOGIN] dto received:', dto)</code> to reveal the <code>[Function: anonymous]</code> issue.
+        <strong>Removed</strong> after root cause was identified — file is now clean.
+      </td>
+    </tr>
+    <tr>
+      <td><code>frontend/src/features/profile/pages/ProfilePage.tsx</code></td>
+      <td><span class="badge solved">MOCK DATA REMOVED</span></td>
+      <td>
+        Replaced hardcoded <code>MANAGER_PROFILE</code> / <code>EMPLOYEE_PROFILE</code> constants with real API calls to
+        <code>GET /auth/me</code> and <code>GET /employees/:id</code>. Profile now shows the logged-in user's real name, email, phone, and contract.
+      </td>
+    </tr>
+    <tr>
+      <td><code>frontend/src/features/employees/pages/ManagerTeamPage.tsx</code></td>
+      <td><span class="badge solved">MOCK DATA REMOVED</span></td>
+      <td>
+        Replaced hardcoded <code>TEAM</code> array with a real <code>GET /employees</code> API call via <code>listEmployees()</code>.
+        Employee names, roles, and contracts now come from Supabase. Hours worked shows 0 (no hours-tracking API exists yet).
+      </td>
+    </tr>
+    <tr>
+      <td><code>backend/src/main.ts</code></td>
+      <td><span class="badge keep">KEEP — GOOD PRACTICE</span></td>
+      <td>
+        Added <code>import 'reflect-metadata'</code> as the first line.
+        NestJS requires this to be imported before anything else. Was missing from the entry point.
+      </td>
+    </tr>
+  </table>
+
+  <!-- ─────────────────────────────────────────────────────── -->
+  <h2>5. Before / After: Key Files</h2>
+
+  <h3>auth.controller.ts — Before (broken)</h3>
+  <pre>import type { CurrentUserResponseDto } from './dto/current-user-response.dto';
+import type { LoginRequestDto } from './dto/login-request.dto';   // ← TYPE IMPORT — ERASED AT COMPILE TIME
+import type { LoginResponseDto } from './dto/login-response.dto';
+import type { AuthUserPayload } from './types/auth-user-payload.type';</pre>
+
+  <h3>auth.controller.ts — After (fixed)</h3>
+  <pre>import type { CurrentUserResponseDto } from './dto/current-user-response.dto';
+import { LoginRequestDto } from './dto/login-request.dto';        // ← REAL IMPORT — CLASS REFERENCE PRESERVED
+import type { LoginResponseDto } from './dto/login-response.dto';
+import type { AuthUserPayload } from './types/auth-user-payload.type';</pre>
+
+  <h3>global-exception.filter.ts — After (permanent improvement)</h3>
+  <pre>    console.error('[UNHANDLED ERROR]', exception);   // ← ADDED
+    return this.build(500, 'INTERNAL_SERVER_ERROR', 'Internal server error', []);</pre>
+
+  <h3>main.ts — After</h3>
+  <pre>import 'reflect-metadata';   // ← ADDED — must be first import
+import 'dotenv/config';
+import { ValidationPipe } from '@nestjs/common';</pre>
+
+  <!-- ─────────────────────────────────────────────────────── -->
+  <h2>6. Status &amp; Remaining Actions</h2>
+
+  <table>
+    <tr><th style="width:5%">#</th><th style="width:55%">Action</th><th>Status</th></tr>
+    <tr>
+      <td>1</td>
+      <td>Login working end-to-end with real Supabase credentials</td>
+      <td><span class="badge solved">DONE ✓</span></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Debug <code>console.log</code> removed from <code>auth.service.ts</code></td>
+      <td><span class="badge solved">DONE ✓</span></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Profile page shows real logged-in user data</td>
+      <td><span class="badge solved">DONE ✓</span></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Team page shows real employees from Supabase</td>
+      <td><span class="badge solved">DONE ✓</span></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Audited all other controllers for <code>import type</code> on DTOs used in <code>@Body()</code> / <code>@Param()</code> / <code>@Query()</code> — all clean, no other occurrences found</td>
+      <td><span class="badge solved">DONE ✓</span></td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>Keep <code>console.error</code> in <code>global-exception.filter.ts</code> permanently</td>
+      <td><span class="badge keep">KEEP</span></td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>

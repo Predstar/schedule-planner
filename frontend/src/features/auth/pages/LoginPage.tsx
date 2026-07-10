@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { login } from '../services/auth.service';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail]         = useState('');
-  const [password, setPassword]   = useState('');
-  const [showPw, setShowPw]       = useState(false);
-  const [error, setError]         = useState('');
-  const [loading, setLoading]     = useState(false);
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [showPw, setShowPw]         = useState(false);
+  const [error, setError]           = useState('');
+  const [loading, setLoading]       = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent]   = useState(false);
@@ -21,14 +21,18 @@ export function LoginPage() {
     setLoading(true);
     try {
       const res = await login({ email, password });
-      const systemRole = res.user.systemRole;
-      if (systemRole === 'EMPLOYEE') {
+      if (res.user.systemRole === 'EMPLOYEE') {
         navigate('/employee/shifts');
       } else {
         navigate('/manager/schedule');
       }
-    } catch {
-      setError('Invalid email or password. Please try again.');
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err?.code === 'EMAIL_NOT_CONFIRMED') {
+        setError('Please confirm your email before logging in. Check your inbox for the confirmation link.');
+      } else {
+        setError('Invalid email or password. Please try again.');
+      }
       setPassword('');
     } finally {
       setLoading(false);
@@ -130,15 +134,6 @@ export function LoginPage() {
         <button className={styles.loginBtn} onClick={handleLogin} disabled={loading}>
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
-
-        {/* Register link */}
-        <div style={{ textAlign: 'center', marginTop: 18 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Don't have an account? </span>
-          <Link to="/register" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-light)', textDecoration: 'none' }}>
-            Sign up
-          </Link>
-        </div>
-
       </div>
 
       {/* Forgot Password Modal */}

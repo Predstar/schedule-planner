@@ -33,7 +33,7 @@ export class EmployeesController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN')
   create(@Body() dto: CreateEmployeeDto): Promise<EmployeeResponseDto> {
     return this.employeesService.createEmployee(dto);
   }
@@ -64,7 +64,7 @@ export class EmployeesController {
 
   @Put(':employeeId')
   @UseGuards(RolesGuard)
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN')
   update(
     @Param('employeeId') employeeId: string,
     @Body() dto: UpdateEmployeeDto,
@@ -74,7 +74,7 @@ export class EmployeesController {
 
   @Patch(':employeeId/deactivate')
   @UseGuards(RolesGuard)
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN')
   deactivate(@Param('employeeId') employeeId: string): Promise<EmployeeResponseDto> {
     return this.employeesService.deactivateEmployee(employeeId);
   }

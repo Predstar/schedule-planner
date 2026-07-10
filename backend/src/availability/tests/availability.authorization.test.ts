@@ -26,16 +26,8 @@ describe('Availability authorization', () => {
     expect(guard.canActivate(createContext(controller.submit, 'EMPLOYEE'))).toBe(true);
   });
 
-  it('denies MANAGER submitting availability', () => {
-    try {
-      guard.canActivate(createContext(controller.submit, 'MANAGER'));
-    } catch (error) {
-      expect(error).toBeInstanceOf(AppException);
-      expect((error as AppException).code).toBe('ACCESS_DENIED');
-      return;
-    }
-
-    throw new Error('Expected ACCESS_DENIED');
+  it('allows MANAGER submitting availability on behalf of an employee', () => {
+    expect(guard.canActivate(createContext(controller.submit, 'MANAGER'))).toBe(true);
   });
 
   it('allows MANAGER listing weekly availability', () => {

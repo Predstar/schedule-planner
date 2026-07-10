@@ -1,13 +1,21 @@
 import { apiClient, setToken, clearToken } from '../../../shared/lib/apiClient';
-import type { LoginRequest, LoginResponse, RegisterRequest, CurrentUser } from '../../../shared/types/api.types';
+import type {
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  ConfirmEmailRequest,
+  CurrentUser,
+} from '../../../shared/types/api.types';
 
 const USER_KEY = 'currentUser';
 
-export async function register(data: RegisterRequest): Promise<LoginResponse> {
-  const res = await apiClient.post<LoginResponse>('/auth/register', data);
-  setToken(res.accessToken);
-  localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-  return res;
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  return apiClient.post<RegisterResponse>('/auth/register', data);
+}
+
+export async function confirmEmail(data: ConfirmEmailRequest): Promise<{ message: string }> {
+  return apiClient.post<{ message: string }>('/auth/confirm', data);
 }
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {

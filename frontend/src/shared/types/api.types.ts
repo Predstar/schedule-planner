@@ -35,6 +35,14 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface RegisterResponse {
+  message: string;
+}
+
+export interface ConfirmEmailRequest {
+  token: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   tokenType: 'Bearer';
@@ -174,6 +182,8 @@ export interface Assignment {
   startTime: string;
   endTime: string;
   employeeRole: EmployeeRole;
+  // legacy field — some endpoints still return 'id' instead of 'assignmentId'
+  id?: string;
 }
 
 export interface Schedule {
@@ -201,4 +211,29 @@ export interface MyRoleScheduleResponse {
   employeeRole: EmployeeRole;
   status: 'PUBLISHED';
   assignments: Assignment[];
+}
+
+// ─── Swap Requests ────────────────────────────────────────────────────────────
+
+export type SwapRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'APPROVED';
+
+export interface SwapRequest {
+  id: string;
+  requestingEmployeeId: string;
+  requestingEmployeeName: string;
+  targetEmployeeId: string;
+  targetEmployeeName: string;
+  requestingShiftId: string;
+  requestingShiftDate: string;   // ISO date "2026-06-12"
+  requestingShiftStart: string;  // "09:00"
+  requestingShiftEnd: string;    // "17:00"
+  reason: string;
+  status: SwapRequestStatus;
+  createdAt: string;             // ISO datetime
+}
+
+export interface CreateSwapRequestBody {
+  targetEmployeeId: string;
+  requestingShiftId: string;
+  reason: string;
 }

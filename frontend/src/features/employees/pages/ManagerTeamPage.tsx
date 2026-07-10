@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { getStoredUser } from '../../auth/services/auth.service';
 import { listEmployees, createEmployee, createEmployeeAccount } from '../services/employees.service';
 import type { Employee, EmployeeRole, EmploymentType } from '../../../shared/types/api.types';
 import styles from './ManagerTeamPage.module.css';
@@ -260,6 +261,7 @@ function AddEmployeeModal({ onClose, onAdded }: AddModalProps) {
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export function ManagerTeamPage() {
+  const isAdmin = getStoredUser()?.systemRole === 'ADMIN';
   const [employees,  setEmployees]  = useState<Employee[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
@@ -338,8 +340,7 @@ export function ManagerTeamPage() {
       doc.text(e.email, cols[3], y + 6);
       doc.setTextColor(e.active ? 22 : 153, e.active ? 101 : 27, e.active ? 52 : 27);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${sign}${diff}h`, cols[6], y + 6);
-      const pct = Math.min(e.worked / e.target, 1);
+      const pct = 0;
       const barX = cols[4] - 2; const barY = y + 7.5; const barW = 32;
       doc.setFillColor(220, 210, 200);
       doc.roundedRect(barX, barY, barW, 1.5, 0.5, 0.5, 'F');
@@ -366,15 +367,17 @@ export function ManagerTeamPage() {
         <div className={styles.header}>
           <h1 className={styles.title}>Team ({filtered.length})</h1>
           <div style={{ display:'flex', gap:8 }}>
-            <button
-              onClick={() => setShowAdd(true)}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'11px 14px', background:'var(--accent)', color:'#FAF6F0', border:'none', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'0 4px 14px var(--accent-shadow)', fontFamily:'Inter,sans-serif', whiteSpace:'nowrap', transition:'background 0.15s' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Add
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdd(true)}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'11px 14px', background:'var(--accent)', color:'#FAF6F0', border:'none', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'0 4px 14px var(--accent-shadow)', fontFamily:'Inter,sans-serif', whiteSpace:'nowrap', transition:'background 0.15s' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add
+              </button>
+            )}
             <button className={styles.exportBtn} onClick={exportPDF}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FAF6F0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -430,7 +433,7 @@ export function ManagerTeamPage() {
         {!loading && !error && filtered.length === 0 && (
           <div className={styles.empty}>
             <strong>No employees yet</strong>
-            Tap <b>Add</b> above to create your first employee.
+            {isAdmin ? <>Tap <b>Add</b> above to create your first employee.</> : 'Ask an admin to add employees.'}
           </div>
         )}
 

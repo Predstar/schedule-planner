@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { register } from '../services/auth.service';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import styles from './LoginPage.module.css';
 
 export function RegisterPage() {
-  const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName]   = useState('');
   const [email, setEmail]         = useState('');
@@ -14,6 +13,7 @@ export function RegisterPage() {
   const [showPw, setShowPw]       = useState(false);
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   async function handleRegister() {
     setError('');
@@ -32,12 +32,40 @@ export function RegisterPage() {
     setLoading(true);
     try {
       await register({ firstName, lastName, email, password });
-      navigate('/employee/shifts');
-    } catch {
-      setError('Registration failed. This email may already be in use.');
+      setSubmitted(true);
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err?.code === 'USER_EMAIL_ALREADY_EXISTS') {
+        setError('This email is already registered.');
+      } else {
+        setError('Registration failed. Try again.');
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <PhoneShell>
+        <div className={styles.content}>
+          <div className={styles.logoArea}>
+            <div className={styles.logoBox}>
+              <div className={styles.logoMark}>a<span className={styles.logoDot}>.</span></div>
+            </div>
+            <div className={styles.logoTitle}>Authentikka</div>
+            <div className={styles.logoSub}>Check your email</div>
+            <div className={styles.logoRule} />
+          </div>
+          <p style={{ fontSize: 14, color: 'var(--text-sub)', textAlign: 'center', lineHeight: 1.6, padding: '0 8px' }}>
+            We've sent a confirmation link to <strong>{email}</strong>. Click it to activate your account, then sign in.
+          </p>
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <Link to="/login" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-light)', textDecoration: 'none' }}>Back to sign in</Link>
+          </div>
+        </div>
+      </PhoneShell>
+    );
   }
 
   return (

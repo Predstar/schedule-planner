@@ -28,6 +28,37 @@
   margin-top: 3px;
 }
 
+.weekNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1.5px solid var(--border-light);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.navArrow {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.navArrow:hover { background: var(--accent-pale); }
+
+.weekLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .timerBadge {
   display: flex;
   align-items: center;
@@ -97,6 +128,139 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
+
+/* Tabs */
+.tabRow {
+  display: flex;
+  gap: 6px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-light);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 9px 10px;
+  background: none;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tabBtnActive {
+  background: var(--accent);
+  color: #FAF6F0;
+}
+
+/* Schedule table (manager) */
+.scheduleTableHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.scheduleTableActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.4px;
+}
+
+.approveBtn {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  background: #E0F2FE;
+  color: #0369A1;
+  transition: background 0.15s;
+}
+.approveBtn:hover:not(:disabled) { background: #0369A1; color: #fff; }
+.approveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.generateBtn {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  background: var(--accent-pale);
+  color: var(--accent);
+  transition: background 0.15s;
+}
+.generateBtn:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.generateBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.exportBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #FAF6F0;
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 14px var(--accent-shadow);
+  transition: background 0.15s;
+}
+.exportBtn:hover:not(:disabled) { background: var(--accent-light); }
+.exportBtn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-light);
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 16px;
+}
+.table { width: 100%; border-collapse: collapse; min-width: 560px; }
+
+.thName, .th { padding: 10px 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; background: var(--accent-pale); border-bottom: 1.5px solid var(--border-light); text-align: left; white-space: nowrap; }
+.thName { min-width: 100px; padding-left: 12px; }
+.th { min-width: 72px; }
+.thDay { display: block; color: var(--accent); }
+.thDate { display: block; font-weight: 500; color: var(--text-muted); font-size: 10px; text-transform: none; letter-spacing: 0; }
+
+.tr:nth-child(even) { background: var(--card); }
+.tr:nth-child(odd)  { background: var(--surface); }
+.tr:hover { background: var(--accent-pale); }
+
+.tdName { padding: 10px 8px 10px 12px; vertical-align: middle; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
+.td { padding: 8px; vertical-align: middle; border-bottom: 1px solid var(--border-light); }
+
+.empName { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.roleBadge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+
+.shiftChip { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-pale); border-radius: 6px; padding: 2px 6px; margin-bottom: 2px; white-space: nowrap; display: inline-block; }
+
+.dash { color: var(--border); font-size: 14px; }
 
 /* Day card */
 .dayCard {

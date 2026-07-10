@@ -16,6 +16,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     const payload = this.toPayload(exception);
+    if (payload.statusCode !== 500) {
+      console.warn(`[${payload.statusCode} ${payload.code}] ${payload.message}`);
+    }
     response.status(payload.statusCode).json(payload);
   }
 

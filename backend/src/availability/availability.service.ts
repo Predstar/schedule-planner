@@ -86,7 +86,9 @@ export class AvailabilityService {
   ): Promise<AvailabilityResponseDto> {
     this.assertEmployeeSelfAccess(authUser, dto.employeeId);
     await this.ensureEmployeeExists(dto.employeeId);
-    this.ensureEmployeeDeadline(dto.weekStartDate);
+    if (authUser.systemRole === 'EMPLOYEE') {
+      this.ensureEmployeeDeadline(dto.weekStartDate);
+    }
     this.validateEntriesWithinWeek(dto.weekStartDate, dto.entries);
 
     const weekStartDate = parseIsoDate(dto.weekStartDate).toJSDate();
@@ -144,7 +146,9 @@ export class AvailabilityService {
     }
 
     this.assertEmployeeSelfAccess(authUser, existingAvailability.employeeId);
-    this.ensureEmployeeDeadline(formatIsoDate(existingAvailability.weekStartDate));
+    if (authUser.systemRole === 'EMPLOYEE') {
+      this.ensureEmployeeDeadline(formatIsoDate(existingAvailability.weekStartDate));
+    }
     this.validateEntriesWithinWeek(formatIsoDate(existingAvailability.weekStartDate), dto.entries);
 
     const availability = await this.prismaService.$transaction(async (tx) => {
@@ -209,9 +213,15 @@ export class AvailabilityService {
   }
 
   private assertEmployeeSelfAccess(authUser: AuthUserPayload, employeeId: string): void {
-    if (authUser.systemRole !== 'EMPLOYEE' || !authUser.employeeId || authUser.employeeId !== employeeId) {
-      throw new AppException(403, 'ACCESS_DENIED', 'Access denied');
+    if (authUser.systemRole === 'ADMIN' || authUser.systemRole === 'MANAGER') {
+      return;
     }
+
+    if (authUser.systemRole === 'EMPLOYEE' && authUser.employeeId === employeeId) {
+      return;
+    }
+
+    throw new AppException(403, 'ACCESS_DENIED', 'Access denied');
   }
 
   private assertEmployeeViewAccess(authUser: AuthUserPayload, employeeId: string): void {

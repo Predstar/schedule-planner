@@ -8,81 +8,26 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  email        String     @unique
-  passwordHash String     @map("password_hash")
-  firstName    String?    @map("first_name")
-  lastName     String?    @map("last_name")
-  systemRole   SystemRole @map("system_role")
-  employeeId   String?    @unique @map("employee_id") @db.Uuid
-  employee     Employee?  @relation(fields: [employeeId], references: [id])
-  active            Boolean   @default(false)
-  confirmationToken String?   @unique @map("confirmation_token")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-
-  @@map("users")
+enum SystemRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
 }
 
-model Employee {
-  id              String         @id @default(uuid()) @db.Uuid
-  firstName       String         @map("first_name")
-  lastName        String         @map("last_name")
-  email           String         @unique
-  phone           String?
-  employmentType  EmploymentType @map("employment_type")
-  employeeRole    EmployeeRole   @map("employee_role")
-  weeklyHourLimit Int            @map("weekly_hour_limit")
-  active          Boolean        @default(true)
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  user            User?
-  availabilities  Availability[]
-  assignments     Assignment[]
-
-  @@map("employees")
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  MINI_JOB
 }
 
-model Availability {
-  id            String             @id @default(uuid()) @db.Uuid
-  employeeId    String             @map("employee_id") @db.Uuid
-  employee      Employee           @relation(fields: [employeeId], references: [id])
-  weekStartDate DateTime           @map("week_start_date") @db.Date
-  status        AvailabilityStatus
-  entries       AvailabilityEntry[]
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
-
-  @@unique([employeeId, weekStartDate])
-  @@map("availabilities")
+enum EmployeeRole {
+  WAITER
+  RUNNER
+  BARTENDER
 }
 
-model AvailabilityEntry {
-  id             String       @id @default(uuid()) @db.Uuid
-  availabilityId String       @map("availability_id") @db.Uuid
-  date           DateTime     @db.Date
-  startTime      String       @map("start_time")
-  endTime        String       @map("end_time")
-  available      Boolean
-  preferred      Boolean
-  availability   Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
-
-  @@map("availability_entries")
-}
-
-model Shift {
-  id            String       @id @default(uuid()) @db.Uuid
-  date          DateTime     @db.Date
-  startTime     String       @map("start_time")
-  endTime       String       @map("end_time")
-  employeeRole  EmployeeRole @map("employee_role")
-  requiredCount Int          @map("required_count")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
-  assignments   Assignment[]
-
-  @@map("shifts")
+enum AvailabilityStatus {
+  SUBMITTED
 }
 
 enum ScheduleStatus {
@@ -92,27 +37,132 @@ enum ScheduleStatus {
   PUBLISHED
 }
 
-model Schedule {
-  id            String         @id @default(uuid()) @db.Uuid
-  weekStartDate DateTime       @unique @map("week_start_date") @db.Date
-  status        ScheduleStatus @default(DRAFT)
-  assignments   Assignment[]
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+enum SwapRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  APPROVED
+}
 
+model User {
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String     @unique
+  passwordHash      String     @map("password_hash")
+  firstName         String?    @map("first_name")
+  lastName          String?    @map("last_name")
+  systemRole        SystemRole @map("system_role")
+  employeeId        String?    @unique @map("employee_id") @db.Uuid
+  employee          Employee?  @relation(fields: [employeeId], references: [id])
+  active            Boolean    @default(true)
+  confirmationToken String?    @unique @map("confirmation_token")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Employee {
+  id              String               @id @default(uuid()) @db.Uuid
+  firstName       String               @map("first_name")
+  lastName        String               @map("last_name")
+  email           String               @unique
+  phone           String?
+  employmentType  EmploymentType       @map("employment_type")
+  employeeRole    EmployeeRole         @map("employee_role")
+  weeklyHourLimit Int                  @map("weekly_hour_limit")
+  active          Boolean              @default(true)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  user            User?
+  availabilities  Availability[]
+  assignments     ScheduleAssignment[]
+  requestedSwaps  SwapRequest[]        @relation("RequestingSwaps")
+  targetedSwaps   SwapRequest[]        @relation("TargetedSwaps")
+
+  @@map("employees")
+}
+
+model Availability {
+  id            String              @id @default(uuid()) @db.Uuid
+  employeeId    String              @map("employee_id") @db.Uuid
+  employee      Employee            @relation(fields: [employeeId], references: [id])
+  weekStartDate DateTime            @map("week_start_date") @db.Date
+  status        AvailabilityStatus
+  entries       AvailabilityEntry[]
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@unique([employeeId, weekStartDate])
+  @@map("availabilities")
+}
+
+model AvailabilityEntry {
+  id             String       @id @default(uuid()) @db.Uuid
+  availabilityId String       @map("availability_id") @db.Uuid
+  availability   Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  date           DateTime     @db.Date
+  startTime      String       @map("start_time")
+  endTime        String       @map("end_time")
+  available      Boolean
+  preferred      Boolean
+
+  @@map("availability_entries")
+}
+
+model Shift {
+  id            String               @id @default(uuid()) @db.Uuid
+  date          DateTime             @db.Date
+  startTime     String               @map("start_time")
+  endTime       String               @map("end_time")
+  employeeRole  EmployeeRole         @map("employee_role")
+  requiredCount Int                  @map("required_count")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  assignments   ScheduleAssignment[]
+
+  @@map("shifts")
+}
+
+model Schedule {
+  id              String               @id @default(uuid()) @db.Uuid
+  weekStartDate   DateTime             @map("week_start_date") @db.Date
+  status          ScheduleStatus
+  rejectionReason String?              @map("rejection_reason")
+  assignments     ScheduleAssignment[]
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  @@unique([weekStartDate])
   @@map("schedules")
 }
 
-model Assignment {
-  id         String   @id @default(uuid()) @db.Uuid
-  scheduleId String   @map("schedule_id") @db.Uuid
-  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  shiftId    String   @map("shift_id") @db.Uuid
-  shift      Shift    @relation(fields: [shiftId], references: [id])
-  employeeId String   @map("employee_id") @db.Uuid
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  createdAt  DateTime @default(now()) @map("created_at")
+model ScheduleAssignment {
+  id           String        @id @default(uuid()) @db.Uuid
+  scheduleId   String        @map("schedule_id") @db.Uuid
+  shiftId      String        @map("shift_id") @db.Uuid
+  employeeId   String        @map("employee_id") @db.Uuid
+  schedule     Schedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  shift        Shift         @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  swapRequests SwapRequest[]
 
-  @@unique([scheduleId, shiftId, employeeId])
-  @@map("assignments")
+  @@map("schedule_assignments")
+}
+
+model SwapRequest {
+  id                     String             @id @default(uuid()) @db.Uuid
+  requestingEmployeeId   String             @map("requesting_employee_id") @db.Uuid
+  requestingEmployee     Employee           @relation("RequestingSwaps", fields: [requestingEmployeeId], references: [id])
+  targetEmployeeId       String             @map("target_employee_id") @db.Uuid
+  targetEmployee         Employee           @relation("TargetedSwaps", fields: [targetEmployeeId], references: [id])
+  requestingAssignmentId String             @map("requesting_assignment_id") @db.Uuid
+  requestingAssignment   ScheduleAssignment @relation(fields: [requestingAssignmentId], references: [id])
+  reason                 String
+  status                 SwapRequestStatus  @default(PENDING)
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  @@map("swap_requests")
 }

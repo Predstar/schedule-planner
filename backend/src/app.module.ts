@@ -5,6 +5,7 @@ import { EmployeesModule } from './employees/employees.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { ShiftsModule } from './shifts/shifts.module';
+import { SwapsModule } from './swaps/swaps.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { UsersModule } from './users/users.module';
     AvailabilityModule,
     ShiftsModule,
     SchedulesModule,
+    SwapsModule,
   ],
 })
 export class AppModule {}

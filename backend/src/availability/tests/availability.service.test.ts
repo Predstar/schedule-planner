@@ -192,7 +192,25 @@ describe('AvailabilityService', () => {
     throw new Error('Expected AVAILABILITY_DEADLINE_PASSED');
   });
 
-  it('denies ADMIN submitting employee availability with 403 ACCESS_DENIED', async () => {
+  it('allows ADMIN submitting availability on behalf of an employee', async () => {
+    prismaService.employee.findUnique = vi.fn().mockResolvedValue({ id: 'employee-1' });
+    prismaService.availability.findUnique = vi.fn().mockResolvedValue(null);
+    prismaService.availability.create = vi.fn().mockResolvedValue({
+      id: 'availability-1',
+      employeeId: 'employee-1',
+      weekStartDate: new Date('2026-04-06T00:00:00.000Z'),
+      status: 'SUBMITTED',
+      entries: [
+        {
+          date: new Date('2026-04-06T00:00:00.000Z'),
+          startTime: '09:00',
+          endTime: '17:00',
+          available: true,
+          preferred: true,
+        },
+      ],
+    });
+
     await expect(
       availabilityService.submitAvailability(
         {
@@ -215,8 +233,8 @@ describe('AvailabilityService', () => {
           employeeId: null,
         },
       ),
-    ).rejects.toMatchObject({
-      code: 'ACCESS_DENIED',
+    ).resolves.toMatchObject({
+      employeeId: 'employee-1',
     });
   });
 
@@ -335,7 +353,7 @@ describe('AvailabilityService', () => {
     });
   });
 
-  it('denies MANAGER updating employee availability with 403 ACCESS_DENIED', async () => {
+  it('allows MANAGER updating employee availability', async () => {
     prismaService.availability.findUnique = vi.fn().mockResolvedValue({
       id: 'availability-1',
       employeeId: 'employee-1',
@@ -343,6 +361,30 @@ describe('AvailabilityService', () => {
       status: 'SUBMITTED',
       entries: [],
     });
+    prismaService.$transaction = vi.fn().mockImplementation(async (callback: Function) =>
+      callback({
+        availabilityEntry: {
+          deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
+        availability: {
+          update: vi.fn().mockResolvedValue({
+            id: 'availability-1',
+            employeeId: 'employee-1',
+            weekStartDate: new Date('2026-04-06T00:00:00.000Z'),
+            status: 'SUBMITTED',
+            entries: [
+              {
+                date: new Date('2026-04-07T00:00:00.000Z'),
+                startTime: '10:00',
+                endTime: '14:00',
+                available: true,
+                preferred: false,
+              },
+            ],
+          }),
+        },
+      }),
+    );
 
     await expect(
       availabilityService.updateAvailability(
@@ -365,8 +407,8 @@ describe('AvailabilityService', () => {
           employeeId: null,
         },
       ),
-    ).rejects.toMatchObject({
-      code: 'ACCESS_DENIED',
+    ).resolves.toMatchObject({
+      employeeId: 'employee-1',
     });
   });
 

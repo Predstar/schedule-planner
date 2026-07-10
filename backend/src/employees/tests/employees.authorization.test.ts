@@ -37,4 +37,48 @@ describe('Employees authorization', () => {
 
     throw new Error('Expected ACCESS_DENIED');
   });
+
+  it('MANAGER cannot create employee profile', () => {
+    try {
+      guard.canActivate(createContext(controller.create, 'MANAGER'));
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('ACCESS_DENIED');
+      return;
+    }
+
+    throw new Error('Expected ACCESS_DENIED');
+  });
+
+  it('ADMIN can create employee profile', () => {
+    expect(guard.canActivate(createContext(controller.create, 'ADMIN'))).toBe(true);
+  });
+
+  it('MANAGER cannot update employee profile', () => {
+    try {
+      guard.canActivate(createContext(controller.update, 'MANAGER'));
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('ACCESS_DENIED');
+      return;
+    }
+
+    throw new Error('Expected ACCESS_DENIED');
+  });
+
+  it('MANAGER cannot deactivate employee profile', () => {
+    try {
+      guard.canActivate(createContext(controller.deactivate, 'MANAGER'));
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppException);
+      expect((error as AppException).code).toBe('ACCESS_DENIED');
+      return;
+    }
+
+    throw new Error('Expected ACCESS_DENIED');
+  });
+
+  it('MANAGER can still list employees (read-only access retained)', () => {
+    expect(guard.canActivate(createContext(controller.list, 'MANAGER'))).toBe(true);
+  });
 });

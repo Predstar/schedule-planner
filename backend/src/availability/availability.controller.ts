@@ -17,7 +17,7 @@ export class AvailabilityController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('EMPLOYEE')
+  @Roles('EMPLOYEE', 'MANAGER', 'ADMIN')
   submit(
     @Body() dto: SubmitAvailabilityDto,
     @CurrentUser() authUser: AuthUserPayload,
@@ -27,7 +27,7 @@ export class AvailabilityController {
 
   @Put(':availabilityId')
   @UseGuards(RolesGuard)
-  @Roles('EMPLOYEE')
+  @Roles('EMPLOYEE', 'MANAGER', 'ADMIN')
   update(
     @Param('availabilityId') availabilityId: string,
     @Body() dto: UpdateAvailabilityDto,

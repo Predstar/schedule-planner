@@ -25,4 +25,17 @@ services:
       - key: RESEND_FROM_EMAIL
         sync: false
       - key: FRONTEND_URL
-        sync: false
+        value: https://schedule-planner-frontend.onrender.com
+
+  - type: web
+    name: schedule-planner-frontend
+    runtime: static
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter frontend build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://schedule-planner-backend-mf38.onrender.com/api/v1
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

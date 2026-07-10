@@ -25,7 +25,7 @@ services:
       - key: RESEND_FROM_EMAIL
         sync: false
       - key: FRONTEND_URL
-        value: https://schedule-planner-frontend.onrender.com
+        value: https://schedule-planner-frontend-qr0w.onrender.com
 
   - type: web
     name: schedule-planner-frontend

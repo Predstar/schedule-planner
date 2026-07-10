@@ -28,8 +28,11 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
-  app.enableCors({ origin: true, credentials: true });
-  await app.listen(3000);
+  app.enableCors({
+    origin: process.env.FRONTEND_URL ?? true,
+    credentials: true,
+  });
+  await app.listen(process.env.PORT ?? 3000);
 }
 
 void bootstrap();

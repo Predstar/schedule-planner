@@ -57,7 +57,7 @@ export class EmployeesController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER', 'EMPLOYEE')
   list(@Query() query: ListEmployeesQueryDto): Promise<EmployeeResponseDto[]> {
     return this.employeesService.listEmployees(query);
   }

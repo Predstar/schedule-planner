@@ -270,3 +270,20 @@ export interface CreateOpenShiftPostBody {
   assignmentId: string;
   reason: string;
 }
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export type NotificationType =
+  | 'SCHEDULE_DRAFT_GENERATED'
+  | 'SCHEDULE_PUBLISHED'
+  | 'SWAP_DECISION'
+  | 'SHIFT_CLAIM_DECISION'
+  | 'AVAILABILITY_REMINDER';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}

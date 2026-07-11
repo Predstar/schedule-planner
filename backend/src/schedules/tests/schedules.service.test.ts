@@ -69,7 +69,7 @@ describe('SchedulesService', () => {
       delete: vi.fn(),
       update: vi.fn(),
       findFirst: vi.fn(),
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     shift: {
       findUnique: vi.fn(),
@@ -80,14 +80,26 @@ describe('SchedulesService', () => {
     availability: {
       findUnique: vi.fn(),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $transaction: vi.fn(),
+  } as any;
+
+  const notificationsService = {
+    notifyScheduleDraftGenerated: vi.fn(),
+    notifySchedulePublished: vi.fn(),
+    notifySwapDecision: vi.fn(),
+    notifyShiftClaimDecision: vi.fn(),
   } as any;
 
   let schedulesService: SchedulesService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    schedulesService = new SchedulesService(prismaService);
+    prismaService.scheduleAssignment.findMany.mockResolvedValue([]);
+    prismaService.user.findMany.mockResolvedValue([]);
+    schedulesService = new SchedulesService(prismaService, notificationsService);
   });
 
   it('creates a draft schedule', async () => {

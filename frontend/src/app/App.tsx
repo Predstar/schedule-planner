@@ -10,6 +10,7 @@ import { ProfilePage } from '../features/profile/pages/ProfilePage';
 import { EmployeeShiftsPage } from '../features/shifts/pages/EmployeeShiftsPage';
 import { EmployeeSwapsPage } from '../features/swaps/pages/EmployeeSwapsPage';
 import { ManagerSwapsPage } from '../features/swaps/pages/ManagerSwapsPage';
+import { AlertsPage } from '../features/notifications/pages/AlertsPage';
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
         <Route path="/manager/availability" element={<AvailabilityPage role="manager" />} />
 
         <Route path="/manager/requests" element={<ManagerSwapsPage />} />
+        <Route path="/manager/alerts"   element={<AlertsPage role="manager" />} />
 
         {/* Placeholder manager routes */}
         <Route path="/manager/profile"  element={<ProfilePage role="manager" />} />
@@ -37,7 +39,7 @@ export function App() {
         {/* Placeholder employee routes */}
         <Route path="/employee/shifts"   element={<EmployeeShiftsPage />} />
         <Route path="/employee/swaps"    element={<EmployeeSwapsPage />} />
-        <Route path="/employee/alerts"   element={<div style={{padding:40,fontFamily:'Inter',color:'#6B4F2A'}}>Alerts — coming soon</div>} />
+        <Route path="/employee/alerts"   element={<AlertsPage role="employee" />} />
         <Route path="/employee/profile"  element={<ProfilePage role="employee" />} />
       </Routes>
     </BrowserRouter>

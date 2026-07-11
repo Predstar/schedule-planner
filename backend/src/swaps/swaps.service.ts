@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import type { AuthUserPayload } from '../auth/types/auth-user-payload.type';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppException } from '../shared/exceptions/app.exception';
 import type { CreateSwapRequestDto } from './dto/create-swap-request.dto';
@@ -50,7 +51,18 @@ function mapSwapRequest(raw: unknown): SwapRequestResponseDto {
 
 @Injectable()
 export class SwapsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
+
+  private async notifySwapParties(employeeIds: string[], approved: boolean): Promise<void> {
+    const users = await this.prismaService.user.findMany({
+      where: { employeeId: { in: employeeIds } },
+      select: { id: true },
+    });
+    await this.notificationsService.notifySwapDecision(users.map((u) => u.id), approved);
+  }
 
   async createSwapRequest(
     dto: CreateSwapRequestDto,
@@ -213,6 +225,8 @@ export class SwapsService {
       });
     });
 
+    await this.notifySwapParties([swap.requestingEmployeeId, swap.targetEmployeeId], true);
+
     return mapSwapRequest(updated);
   }
 
@@ -228,6 +242,8 @@ export class SwapsService {
       data: { status: 'REJECTED' },
       include: SWAP_INCLUDE,
     });
+
+    await this.notifySwapParties([swap.requestingEmployeeId, swap.targetEmployeeId], false);
 
     return mapSwapRequest(updated);
   }

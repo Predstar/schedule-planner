@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import type { AuthUserPayload } from '../auth/types/auth-user-payload.type';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SchedulesService } from '../schedules/schedules.service';
 import { AppException } from '../shared/exceptions/app.exception';
@@ -69,7 +70,16 @@ export class OpenShiftSwapsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly schedulesService: SchedulesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  private async notifyClaimParties(employeeIds: string[], approved: boolean): Promise<void> {
+    const users = await this.prismaService.user.findMany({
+      where: { employeeId: { in: employeeIds } },
+      select: { id: true },
+    });
+    await this.notificationsService.notifyShiftClaimDecision(users.map((u) => u.id), approved);
+  }
 
   async createPost(
     dto: CreateOpenShiftPostDto,
@@ -256,6 +266,8 @@ export class OpenShiftSwapsService {
       });
     });
 
+    await this.notifyClaimParties([post.postedByEmployeeId, claim.claimingEmployeeId], true);
+
     return mapPost(updated);
   }
 
@@ -291,6 +303,8 @@ export class OpenShiftSwapsService {
         include: POST_INCLUDE,
       });
     });
+
+    await this.notifyClaimParties([post.postedByEmployeeId, claim.claimingEmployeeId], false);
 
     return mapPost(updated);
   }

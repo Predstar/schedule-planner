@@ -38,4 +38,23 @@ export class MailService {
       this.logger.warn(`Confirmation link for ${email}: ${confirmUrl}`);
     }
   }
+
+  async sendNotificationEmail(email: string, subject: string, message: string): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn(`RESEND_API_KEY not set — notification for ${email}: ${subject} — ${message}`);
+      return;
+    }
+
+    const { error } = await this.resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL ?? 'Authentikka <onboarding@resend.dev>',
+      to: email,
+      subject,
+      html: `<p>${message}</p>`,
+    });
+
+    if (error) {
+      this.logger.error(`Resend failed to send notification email to ${email}: ${error.message}`);
+      this.logger.warn(`Notification for ${email}: ${subject} — ${message}`);
+    }
+  }
 }

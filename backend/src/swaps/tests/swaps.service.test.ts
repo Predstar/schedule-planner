@@ -60,7 +60,14 @@ describe('SwapsService', () => {
       create: vi.fn(),
       update: vi.fn(),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $transaction: vi.fn(),
+  } as any;
+
+  const notificationsService = {
+    notifySwapDecision: vi.fn(),
   } as any;
 
   let service: SwapsService;
@@ -68,7 +75,8 @@ describe('SwapsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new SwapsService(prismaService);
+    prismaService.user.findMany.mockResolvedValue([]);
+    service = new SwapsService(prismaService, notificationsService);
   });
 
   describe('createSwapRequest', () => {

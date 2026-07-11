@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { DateTime } from 'luxon';
 import type { AuthUserPayload } from '../auth/types/auth-user-payload.type';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppException } from '../shared/exceptions/app.exception';
 import type { AddAssignmentDto } from './dto/add-assignment.dto';
@@ -286,7 +287,21 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
 
 @Injectable()
 export class SchedulesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
+
+  private async notifyEmployeesOfPublish(scheduleId: string, weekStartDate: string): Promise<void> {
+    const assignments = await this.prismaService.scheduleAssignment.findMany({
+      where: { scheduleId },
+      select: { employee: { select: { user: { select: { id: true } } } } },
+    });
+    const userIds = assignments
+      .map((a) => a.employee.user?.id)
+      .filter((id): id is string => Boolean(id));
+    await this.notificationsService.notifySchedulePublished(userIds, weekStartDate);
+  }
 
   async createDraftSchedule(dto: CreateScheduleDto): Promise<ScheduleResponseDto> {
     const weekStartDate = parseIsoDate(dto.weekStartDate).toJSDate();
@@ -506,6 +521,8 @@ export class SchedulesService {
       include: ASSIGNMENT_INCLUDE,
     });
 
+    await this.notifyEmployeesOfPublish(schedule.id, formatIsoDate(updatedSchedule.weekStartDate));
+
     return mapSchedule(updatedSchedule);
   }
 
@@ -549,6 +566,8 @@ export class SchedulesService {
       },
       include: ASSIGNMENT_INCLUDE,
     });
+
+    await this.notifyEmployeesOfPublish(schedule.id, formatIsoDate(updatedSchedule.weekStartDate));
 
     return mapSchedule(updatedSchedule);
   }
@@ -861,6 +880,15 @@ export class SchedulesService {
       where: { id: schedule.id },
       include: ASSIGNMENT_INCLUDE,
     });
+
+    const managers = await this.prismaService.user.findMany({
+      where: { systemRole: { in: ['ADMIN', 'MANAGER'] } },
+      select: { id: true },
+    });
+    await this.notificationsService.notifyScheduleDraftGenerated(
+      managers.map((m) => m.id),
+      weekStartDate,
+    );
 
     return mapSchedule(result);
   }

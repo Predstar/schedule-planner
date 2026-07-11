@@ -70,14 +70,31 @@ export function EmployeeSwapsPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const monday = toIso(getMondayOf(new Date()));
-      const [roleSchedule, mine, open] = await Promise.all([
-        getMyRoleSchedule(monday).catch(() => null),
+      const today = toIso(new Date());
+      const firstMonday = getMondayOf(new Date());
+      const mondays: string[] = [];
+      for (let i = 0; i < 8; i++) {
+        const d = new Date(firstMonday);
+        d.setDate(d.getDate() + i * 7);
+        mondays.push(toIso(d));
+      }
+
+      const [schedules, mine, open] = await Promise.all([
+        Promise.all(mondays.map((m) => getMyRoleSchedule(m).catch(() => null))),
         getMyOpenShiftPosts(),
         getOpenShiftPosts(),
       ]);
 
-      const mineShifts = (roleSchedule?.assignments ?? []).filter((a) => a.employeeId === myEmployeeId);
+      const byId = new Map<string, Assignment>();
+      for (const schedule of schedules) {
+        for (const a of schedule?.assignments ?? []) {
+          if (a.employeeId === myEmployeeId && a.date >= today) {
+            byId.set(a.assignmentId, a);
+          }
+        }
+      }
+      const mineShifts = Array.from(byId.values()).sort((a, b) => a.date.localeCompare(b.date));
+
       setMyShifts(mineShifts);
       setMyPosts(mine);
       setOpenPosts(open);

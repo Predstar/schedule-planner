@@ -3,6 +3,7 @@ import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { getMyRoleSchedule } from '../../schedules/services/schedules.service';
+import { getStoredUser } from '../../auth/services/auth.service';
 import type { Assignment } from '../../../shared/types/api.types';
 import styles from './EmployeeShiftsPage.module.css';
 
@@ -33,6 +34,7 @@ function calcHours(startTime: string, endTime: string): number {
 }
 
 export function EmployeeShiftsPage() {
+  const myEmployeeId = getStoredUser()?.employeeId ?? null;
   const today = new Date();
   const [calYear,  setCalYear]  = useState(today.getFullYear());
   const [calMonth, setCalMonth] = useState(today.getMonth());
@@ -92,8 +94,9 @@ export function EmployeeShiftsPage() {
     (assignmentsByDate[a.date] ??= []).push(a);
   }
 
-  const totalHours  = assignments.reduce((s, a) => s + calcHours(a.startTime, a.endTime), 0);
-  const totalShifts = assignments.length;
+  const myAssignments = assignments.filter(a => a.employeeId === myEmployeeId);
+  const totalHours  = myAssignments.reduce((s, a) => s + calcHours(a.startTime, a.endTime), 0);
+  const totalShifts = myAssignments.length;
 
   const daysInMonth  = getDaysInMonth(calYear, calMonth);
   const firstWeekDay = getFirstDayOfWeek(calYear, calMonth);
@@ -116,7 +119,7 @@ export function EmployeeShiftsPage() {
 
   const selectedAssignments = selectedDate ? (assignmentsByDate[selectedDate] ?? []) : [];
 
-  const upcomingAssignments = assignments
+  const upcomingAssignments = myAssignments
     .filter(a => a.date >= today.toISOString().slice(0, 10))
     .sort((a, b) => a.date.localeCompare(b.date));
 

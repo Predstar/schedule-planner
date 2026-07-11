@@ -89,7 +89,7 @@ function mapMyRoleSchedule(schedule: {
     shift: ShiftRecord;
     employee: { firstName: string; lastName: string };
   }>;
-}, employeeRole: string, currentEmployeeId: string): GetMyRoleScheduleResponseDto {
+}, employeeRole: string): GetMyRoleScheduleResponseDto {
   return {
     weekStartDate: formatIsoDate(schedule.weekStartDate),
     employeeRole: employeeRole as GetMyRoleScheduleResponseDto['employeeRole'],
@@ -98,10 +98,7 @@ function mapMyRoleSchedule(schedule: {
       assignmentId: assignment.id,
       shiftId: assignment.shiftId,
       employeeId: assignment.employeeId,
-      employeeName:
-        assignment.employeeId === currentEmployeeId
-          ? `${assignment.employee.firstName} ${assignment.employee.lastName}`
-          : 'Covered',
+      employeeName: `${assignment.employee.firstName} ${assignment.employee.lastName}`,
       date: formatIsoDate(assignment.shift.date),
       startTime: assignment.shift.startTime,
       endTime: assignment.shift.endTime,
@@ -375,7 +372,6 @@ export class SchedulesService {
         }>;
       },
       employee.employeeRole,
-      employee.id,
     );
   }
 

@@ -48,8 +48,10 @@ export function EmployeeShiftsPage() {
     try {
       const schedule = await getMyRoleSchedule(monday);
       setAssignments(prev => {
-        const existing = prev.filter(a => a.date.slice(0, 7) !== monday.slice(0, 7));
-        return [...existing, ...schedule.assignments];
+        const keyOf = (a: Assignment) => a.assignmentId ?? a.id!;
+        const byId = new Map(prev.map(a => [keyOf(a), a]));
+        for (const a of schedule.assignments) byId.set(keyOf(a), a);
+        return Array.from(byId.values());
       });
     } catch (e: unknown) {
       const err = e as { statusCode?: number };
@@ -70,6 +72,7 @@ export function EmployeeShiftsPage() {
     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
       mondays.add(mondayOfWeek(new Date(d)));
     }
+    setAssignments([]);
     mondays.forEach(m => fetchWeek(m));
   }, [calYear, calMonth, fetchWeek]);
 

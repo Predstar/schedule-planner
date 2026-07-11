@@ -237,3 +237,36 @@ export interface CreateSwapRequestBody {
   requestingShiftId: string;
   reason: string;
 }
+
+// ─── Open Shift Swaps (claim-based) ────────────────────────────────────────────
+
+export type OpenShiftPostStatus = 'OPEN' | 'CLAIMED' | 'APPROVED' | 'CANCELLED';
+export type ShiftClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface ShiftClaim {
+  id: string;
+  claimingEmployeeId: string;
+  claimingEmployeeName: string;
+  status: ShiftClaimStatus;
+  createdAt: string;
+}
+
+export interface OpenShiftPost {
+  id: string;
+  assignmentId: string;
+  postedByEmployeeId: string;
+  postedByEmployeeName: string;
+  shiftDate: string;
+  shiftStartTime: string;
+  shiftEndTime: string;
+  employeeRole: EmployeeRole;
+  reason: string;
+  status: OpenShiftPostStatus;
+  createdAt: string;
+  claims: ShiftClaim[];
+}
+
+export interface CreateOpenShiftPostBody {
+  assignmentId: string;
+  reason: string;
+}

@@ -44,6 +44,19 @@ enum SwapRequestStatus {
   APPROVED
 }
 
+enum OpenShiftPostStatus {
+  OPEN
+  CLAIMED
+  APPROVED
+  CANCELLED
+}
+
+enum ShiftClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                String     @id @default(uuid()) @db.Uuid
   email             String     @unique
@@ -62,22 +75,24 @@ model User {
 }
 
 model Employee {
-  id              String               @id @default(uuid()) @db.Uuid
-  firstName       String               @map("first_name")
-  lastName        String               @map("last_name")
-  email           String               @unique
-  phone           String?
-  employmentType  EmploymentType       @map("employment_type")
-  employeeRole    EmployeeRole         @map("employee_role")
-  weeklyHourLimit Int                  @map("weekly_hour_limit")
-  active          Boolean              @default(true)
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
-  user            User?
-  availabilities  Availability[]
-  assignments     ScheduleAssignment[]
-  requestedSwaps  SwapRequest[]        @relation("RequestingSwaps")
-  targetedSwaps   SwapRequest[]        @relation("TargetedSwaps")
+  id               String               @id @default(uuid()) @db.Uuid
+  firstName        String               @map("first_name")
+  lastName         String               @map("last_name")
+  email            String               @unique
+  phone            String?
+  employmentType   EmploymentType       @map("employment_type")
+  employeeRole     EmployeeRole         @map("employee_role")
+  weeklyHourLimit  Int                  @map("weekly_hour_limit")
+  active           Boolean              @default(true)
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  user             User?
+  availabilities   Availability[]
+  assignments      ScheduleAssignment[]
+  requestedSwaps   SwapRequest[]        @relation("RequestingSwaps")
+  targetedSwaps    SwapRequest[]        @relation("TargetedSwaps")
+  postedOpenShifts OpenShiftPost[]      @relation("PostedOpenShifts")
+  shiftClaims      ShiftClaim[]         @relation("ShiftClaims")
 
   @@map("employees")
 }
@@ -137,16 +152,17 @@ model Schedule {
 }
 
 model ScheduleAssignment {
-  id           String        @id @default(uuid()) @db.Uuid
-  scheduleId   String        @map("schedule_id") @db.Uuid
-  shiftId      String        @map("shift_id") @db.Uuid
-  employeeId   String        @map("employee_id") @db.Uuid
-  schedule     Schedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  shift        Shift         @relation(fields: [shiftId], references: [id], onDelete: Restrict)
-  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  swapRequests SwapRequest[]
+  id             String          @id @default(uuid()) @db.Uuid
+  scheduleId     String          @map("schedule_id") @db.Uuid
+  shiftId        String          @map("shift_id") @db.Uuid
+  employeeId     String          @map("employee_id") @db.Uuid
+  schedule       Schedule        @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  shift          Shift           @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  swapRequests   SwapRequest[]
+  openShiftPosts OpenShiftPost[]
 
   @@map("schedule_assignments")
 }
@@ -165,4 +181,32 @@ model SwapRequest {
   updatedAt              DateTime           @updatedAt @map("updated_at")
 
   @@map("swap_requests")
+}
+
+model OpenShiftPost {
+  id                 String              @id @default(uuid()) @db.Uuid
+  assignmentId       String              @map("assignment_id") @db.Uuid
+  assignment         ScheduleAssignment  @relation(fields: [assignmentId], references: [id])
+  postedByEmployeeId String              @map("posted_by_employee_id") @db.Uuid
+  postedByEmployee   Employee            @relation("PostedOpenShifts", fields: [postedByEmployeeId], references: [id])
+  reason             String
+  status             OpenShiftPostStatus @default(OPEN)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  claims             ShiftClaim[]
+
+  @@map("open_shift_posts")
+}
+
+model ShiftClaim {
+  id                 String           @id @default(uuid()) @db.Uuid
+  openPostId         String           @map("open_post_id") @db.Uuid
+  openPost           OpenShiftPost    @relation(fields: [openPostId], references: [id], onDelete: Cascade)
+  claimingEmployeeId String           @map("claiming_employee_id") @db.Uuid
+  claimingEmployee   Employee         @relation("ShiftClaims", fields: [claimingEmployeeId], references: [id])
+  status             ShiftClaimStatus @default(PENDING)
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  @@map("shift_claims")
 }

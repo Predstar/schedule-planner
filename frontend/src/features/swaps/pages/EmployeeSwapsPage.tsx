@@ -1,31 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { getStoredUser } from '../../auth/services/auth.service';
-import { getEmployee, listEmployees } from '../../employees/services/employees.service';
 import { getMyRoleSchedule } from '../../schedules/services/schedules.service';
 import {
-  acceptSwapRequest,
-  createSwapRequest,
-  declineSwapRequest,
-  getMySwapRequests,
-} from '../services/swaps.service';
-import type { Assignment, Employee, SwapRequest, SwapRequestStatus } from '../../../shared/types/api.types';
+  cancelOpenShiftPost,
+  claimOpenShiftPost,
+  createOpenShiftPost,
+  getMyOpenShiftPosts,
+  getOpenShiftPosts,
+} from '../services/open-shift-swaps.service';
+import type { Assignment, OpenShiftPost, OpenShiftPostStatus } from '../../../shared/types/api.types';
 import styles from './EmployeeSwapsPage.module.css';
 
-const STATUS_LABEL: Record<SwapRequestStatus, string> = {
-  PENDING:  'Pending',
-  ACCEPTED: 'Accepted — Awaiting Manager',
-  REJECTED: 'Rejected',
+const STATUS_LABEL: Record<OpenShiftPostStatus, string> = {
+  OPEN: 'Open',
+  CLAIMED: 'Claimed — Awaiting Manager',
   APPROVED: 'Approved',
+  CANCELLED: 'Cancelled',
 };
 
-const STATUS_STYLE: Record<SwapRequestStatus, { bg: string; color: string }> = {
-  PENDING:  { bg: '#FFF8E1', color: '#B45309' },
-  ACCEPTED: { bg: '#EEF2FF', color: '#4338CA' },
-  REJECTED: { bg: '#FEE2E2', color: '#B91C1C' },
-  APPROVED: { bg: '#DCFCE7', color: '#166534' },
+const STATUS_STYLE: Record<OpenShiftPostStatus, { bg: string; color: string }> = {
+  OPEN:      { bg: '#FFF8E1', color: '#B45309' },
+  CLAIMED:   { bg: '#EEF2FF', color: '#4338CA' },
+  APPROVED:  { bg: '#DCFCE7', color: '#166534' },
+  CANCELLED: { bg: '#FEE2E2', color: '#B91C1C' },
 };
 
 function getMondayOf(date: Date): Date {
@@ -41,50 +41,48 @@ function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function formatShiftLabel(a: Assignment): string {
-  const d = new Date(`${a.date}T00:00:00`);
+function formatShiftLabel(dateIso: string, start: string, end: string): string {
+  const d = new Date(`${dateIso}T00:00:00`);
   const label = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  return `${label} · ${a.startTime}–${a.endTime}`;
+  return `${label} · ${start}–${end}`;
 }
 
 export function EmployeeSwapsPage() {
   const storedUser = getStoredUser();
   const myEmployeeId = storedUser?.employeeId ?? null;
 
-  const [colleagues, setColleagues] = useState<Employee[]>([]);
+  const [tab, setTab] = useState<'mine' | 'open'>('mine');
   const [myShifts, setMyShifts] = useState<Assignment[]>([]);
-  const [swaps, setSwaps] = useState<SwapRequest[]>([]);
+  const [myPosts, setMyPosts] = useState<OpenShiftPost[]>([]);
+  const [openPosts, setOpenPosts] = useState<OpenShiftPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
-  const [targetEmployeeId, setTargetEmployeeId] = useState('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [actingSwapId, setActingSwapId] = useState<string | null>(null);
+  const [actingPostId, setActingPostId] = useState<string | null>(null);
 
   async function loadAll() {
     if (!myEmployeeId) return;
     setLoading(true);
     setLoadError(null);
     try {
-      const me = await getEmployee(myEmployeeId);
-
       const monday = toIso(getMondayOf(new Date()));
-      const [allEmployees, roleSchedule, mySwaps] = await Promise.all([
-        listEmployees({ active: true, employeeRole: me.employeeRole }),
+      const [roleSchedule, mine, open] = await Promise.all([
         getMyRoleSchedule(monday).catch(() => null),
-        getMySwapRequests(),
+        getMyOpenShiftPosts(),
+        getOpenShiftPosts(),
       ]);
 
-      setColleagues(allEmployees.filter((e) => e.id !== myEmployeeId));
-      const mine = (roleSchedule?.assignments ?? []).filter((a) => a.employeeId === myEmployeeId);
-      setMyShifts(mine);
-      setSwaps(mySwaps);
+      const mineShifts = (roleSchedule?.assignments ?? []).filter((a) => a.employeeId === myEmployeeId);
+      setMyShifts(mineShifts);
+      setMyPosts(mine);
+      setOpenPosts(open);
     } catch {
-      setLoadError('Failed to load swap requests. Try again.');
+      setLoadError('Failed to load shift swaps. Try again.');
     } finally {
       setLoading(false);
     }
@@ -95,54 +93,47 @@ export function EmployeeSwapsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myEmployeeId]);
 
-  const canSubmit = Boolean(targetEmployeeId) && Boolean(selectedAssignmentId) && reason.trim().length > 0;
+  const canSubmit = Boolean(selectedAssignmentId) && reason.trim().length > 0;
 
   async function handleSubmit() {
     if (!canSubmit) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await createSwapRequest({
-        targetEmployeeId,
-        requestingShiftId: selectedAssignmentId,
+      await createOpenShiftPost({
+        assignmentId: selectedAssignmentId,
         reason: reason.trim(),
       });
       setShowModal(false);
-      setTargetEmployeeId('');
       setSelectedAssignmentId('');
       setReason('');
       await loadAll();
     } catch (e: unknown) {
-      setSubmitError((e as { message?: string })?.message ?? 'Failed to submit swap request.');
+      setSubmitError((e as { message?: string })?.message ?? 'Failed to post shift as open.');
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleAccept(swapId: string) {
-    setActingSwapId(swapId);
+  async function handleClaim(postId: string) {
+    setActingPostId(postId);
     try {
-      await acceptSwapRequest(swapId);
+      await claimOpenShiftPost(postId);
       await loadAll();
     } finally {
-      setActingSwapId(null);
+      setActingPostId(null);
     }
   }
 
-  async function handleDecline(swapId: string) {
-    setActingSwapId(swapId);
+  async function handleCancel(postId: string) {
+    setActingPostId(postId);
     try {
-      await declineSwapRequest(swapId);
+      await cancelOpenShiftPost(postId);
       await loadAll();
     } finally {
-      setActingSwapId(null);
+      setActingPostId(null);
     }
   }
-
-  const sortedSwaps = useMemo(
-    () => [...swaps].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [swaps],
-  );
 
   return (
     <PhoneShell>
@@ -164,60 +155,120 @@ export function EmployeeSwapsPage() {
           </button>
         </div>
 
-        {/* My Requests */}
-        <div className={styles.section}>
-          <p className={styles.sectionLabel}>MY REQUESTS</p>
-          <div className={styles.list}>
-            {loading ? (
-              <p className={styles.empty}>Loading…</p>
-            ) : loadError ? (
-              <p className={styles.empty}>{loadError}</p>
-            ) : sortedSwaps.length === 0 ? (
-              <p className={styles.empty}>No swap requests yet.</p>
-            ) : (
-              sortedSwaps.map((swap) => {
-                const st = STATUS_STYLE[swap.status];
-                const isTargetOfPending = swap.status === 'PENDING' && swap.targetEmployeeId === myEmployeeId;
-                const otherPartyName = swap.requestingEmployeeId === myEmployeeId
-                  ? swap.targetEmployeeName
-                  : swap.requestingEmployeeName;
-                return (
-                  <div key={swap.id} className={styles.card}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setTab('mine')}
+            style={{
+              flex: 1, padding: '8px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+              fontFamily: 'Inter, sans-serif', cursor: 'pointer',
+              border: tab === 'mine' ? 'none' : '1.5px solid #E8DDD0',
+              background: tab === 'mine' ? '#C2742A' : 'none',
+              color: tab === 'mine' ? '#FFFFFF' : '#8C7B6B',
+            }}
+          >
+            My Requests
+          </button>
+          <button
+            onClick={() => setTab('open')}
+            style={{
+              flex: 1, padding: '8px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+              fontFamily: 'Inter, sans-serif', cursor: 'pointer',
+              border: tab === 'open' ? 'none' : '1.5px solid #E8DDD0',
+              background: tab === 'open' ? '#C2742A' : 'none',
+              color: tab === 'open' ? '#FFFFFF' : '#8C7B6B',
+            }}
+          >
+            Open Shifts {openPosts.length > 0 ? `(${openPosts.length})` : ''}
+          </button>
+        </div>
+
+        {tab === 'mine' ? (
+          <div className={styles.section}>
+            <p className={styles.sectionLabel}>MY REQUESTS</p>
+            <div className={styles.list}>
+              {loading ? (
+                <p className={styles.empty}>Loading…</p>
+              ) : loadError ? (
+                <p className={styles.empty}>{loadError}</p>
+              ) : myPosts.length === 0 ? (
+                <p className={styles.empty}>No swap requests yet.</p>
+              ) : (
+                myPosts.map((post) => {
+                  const st = STATUS_STYLE[post.status];
+                  const isMine = post.postedByEmployeeId === myEmployeeId;
+                  return (
+                    <div key={post.id} className={styles.card}>
+                      <div className={styles.cardTop}>
+                        <span className={styles.cardTitle}>
+                          {isMine ? 'Your posted shift' : `Claimed from ${post.postedByEmployeeName}`}
+                        </span>
+                        <span className={styles.statusBadge} style={{ background: st.bg, color: st.color }}>
+                          {STATUS_LABEL[post.status]}
+                        </span>
+                      </div>
+                      <div className={styles.cardMeta}>
+                        {formatShiftLabel(post.shiftDate, post.shiftStartTime, post.shiftEndTime)}
+                      </div>
+                      <div className={styles.cardReason}>"{post.reason}"</div>
+                      {post.claims.length > 0 && (
+                        <div className={styles.cardMeta}>
+                          {post.claims.length} claim{post.claims.length > 1 ? 's' : ''} pending manager review
+                        </div>
+                      )}
+                      {isMine && post.status === 'OPEN' && (
+                        <div className={styles.cardActions}>
+                          <button
+                            className={styles.declineBtn}
+                            onClick={() => handleCancel(post.id)}
+                            disabled={actingPostId === post.id}
+                          >
+                            {actingPostId === post.id ? '…' : 'Cancel'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.section}>
+            <p className={styles.sectionLabel}>OPEN SHIFTS — CLAIM ONE</p>
+            <div className={styles.list}>
+              {loading ? (
+                <p className={styles.empty}>Loading…</p>
+              ) : openPosts.length === 0 ? (
+                <p className={styles.empty}>No open shifts available right now.</p>
+              ) : (
+                openPosts.map((post) => (
+                  <div key={post.id} className={styles.card}>
                     <div className={styles.cardTop}>
-                      <span className={styles.cardTitle}>Swap with {otherPartyName}</span>
-                      <span className={styles.statusBadge} style={{ background: st.bg, color: st.color }}>
-                        {STATUS_LABEL[swap.status]}
+                      <span className={styles.cardTitle}>{post.postedByEmployeeName}'s shift</span>
+                      <span className={styles.statusBadge} style={{ background: STATUS_STYLE.OPEN.bg, color: STATUS_STYLE.OPEN.color }}>
+                        {post.employeeRole.toLowerCase()}
                       </span>
                     </div>
                     <div className={styles.cardMeta}>
-                      {new Date(`${swap.requestingShiftDate}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      {' · '}{swap.requestingShiftStart}–{swap.requestingShiftEnd}
+                      {formatShiftLabel(post.shiftDate, post.shiftStartTime, post.shiftEndTime)}
                     </div>
-                    <div className={styles.cardReason}>"{swap.reason}"</div>
-                    {isTargetOfPending && (
-                      <div className={styles.cardActions}>
-                        <button
-                          className={styles.acceptBtn}
-                          onClick={() => handleAccept(swap.id)}
-                          disabled={actingSwapId === swap.id}
-                        >
-                          {actingSwapId === swap.id ? '…' : 'Accept'}
-                        </button>
-                        <button
-                          className={styles.declineBtn}
-                          onClick={() => handleDecline(swap.id)}
-                          disabled={actingSwapId === swap.id}
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    )}
+                    <div className={styles.cardReason}>"{post.reason}"</div>
+                    <div className={styles.cardActions}>
+                      <button
+                        className={styles.acceptBtn}
+                        onClick={() => handleClaim(post.id)}
+                        disabled={actingPostId === post.id}
+                      >
+                        {actingPostId === post.id ? '…' : 'Claim this shift'}
+                      </button>
+                    </div>
                   </div>
-                );
-              })
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 
@@ -225,21 +276,7 @@ export function EmployeeSwapsPage() {
       {showModal && (
         <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2 className={styles.modalTitle}>New Swap Request</h2>
-
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>Swap with</label>
-              <select
-                className={styles.select}
-                value={targetEmployeeId}
-                onChange={(e) => setTargetEmployeeId(e.target.value)}
-              >
-                <option value="">Select a colleague…</option>
-                {colleagues.map((c) => (
-                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-                ))}
-              </select>
-            </div>
+            <h2 className={styles.modalTitle}>Post Shift as Open</h2>
 
             <div className={styles.field}>
               <label className={styles.fieldLabel}>Your shift</label>
@@ -250,7 +287,9 @@ export function EmployeeSwapsPage() {
               >
                 <option value="">Select a shift…</option>
                 {myShifts.map((a) => (
-                  <option key={a.assignmentId} value={a.assignmentId}>{formatShiftLabel(a)}</option>
+                  <option key={a.assignmentId} value={a.assignmentId}>
+                    {formatShiftLabel(a.date, a.startTime, a.endTime)}
+                  </option>
                 ))}
               </select>
             </div>
@@ -275,7 +314,7 @@ export function EmployeeSwapsPage() {
                 onClick={handleSubmit}
                 disabled={!canSubmit || submitting}
               >
-                {submitting ? 'Submitting…' : 'Submit'}
+                {submitting ? 'Posting…' : 'Post as Open'}
               </button>
             </div>
           </div>

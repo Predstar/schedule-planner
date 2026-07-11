@@ -458,6 +458,32 @@ export class SchedulesService {
     return mapSchedule(updatedSchedule);
   }
 
+  // Reassigns a published shift to a new employee, e.g. when a manager
+  // approves an open-shift claim. Unlike replaceAssignment, this does not
+  // require the schedule to be in DRAFT — the schedule stays PUBLISHED
+  // throughout, only the assignment's employeeId changes.
+  async transferAssignmentForClaim(assignmentId: string, newEmployeeId: string): Promise<void> {
+    const assignment = await this.prismaService.scheduleAssignment.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment) {
+      throw new AppException(404, 'ASSIGNMENT_NOT_FOUND', 'Assignment not found');
+    }
+
+    const shift = await this.getShiftById(assignment.shiftId);
+    const employee = await this.getEmployeeById(newEmployeeId);
+
+    this.ensureEmployeeRoleMatchesShift(employee, shift);
+    await this.ensureNoShiftOverlap(newEmployeeId, assignment.scheduleId, shift, assignment.id);
+    await this.ensureWeeklyHourLimitNotExceeded(employee, assignment.scheduleId, shift, assignment.id);
+
+    await this.prismaService.scheduleAssignment.update({
+      where: { id: assignmentId },
+      data: { employeeId: newEmployeeId },
+    });
+  }
+
   // Approving immediately publishes the schedule — employees can see their
   // shifts as soon as a manager approves, with no separate publish step.
   async approveSchedule(scheduleId: string): Promise<ScheduleResponseDto> {

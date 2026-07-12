@@ -134,6 +134,14 @@ export function LoginPage() {
         <button className={styles.loginBtn} onClick={handleLogin} disabled={loading}>
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
+
+        {/* Register */}
+        <div className={styles.registerRow}>
+          Don't have an account?{' '}
+          <button className={styles.registerLink} onClick={() => navigate('/register')}>
+            Sign up
+          </button>
+        </div>
       </div>
 
       {/* Forgot Password Modal */}

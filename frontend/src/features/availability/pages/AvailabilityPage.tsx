@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import { getStoredUser } from '../../auth/services/auth.service';
 import { listEmployees, getEmployee } from '../../employees/services/employees.service';
 import {
@@ -612,9 +613,7 @@ export function AvailabilityPage({ role }: Props) {
             )}
 
             {loading ? (
-              <div className={styles.capacityCard}>
-                <div className={styles.capacityText}>Loading your availability…</div>
-              </div>
+              <Spinner size="medium" label="Loading your availability…" />
             ) : (
               days.map((day, i) => (
                 <div key={day.isoDate} className={styles.dayCard}>

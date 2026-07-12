@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import { getStoredUser } from '../../auth/services/auth.service';
 import { getMyRoleSchedule } from '../../schedules/services/schedules.service';
 import {
@@ -205,7 +206,7 @@ export function EmployeeSwapsPage() {
             <p className={styles.sectionLabel}>MY REQUESTS</p>
             <div className={styles.list}>
               {loading ? (
-                <p className={styles.empty}>Loading…</p>
+                <Spinner size="medium" />
               ) : loadError ? (
                 <p className={styles.empty}>{loadError}</p>
               ) : myPosts.length === 0 ? (
@@ -255,7 +256,7 @@ export function EmployeeSwapsPage() {
             <p className={styles.sectionLabel}>OPEN SHIFTS — CLAIM ONE</p>
             <div className={styles.list}>
               {loading ? (
-                <p className={styles.empty}>Loading…</p>
+                <Spinner size="medium" />
               ) : openPosts.length === 0 ? (
                 <p className={styles.empty}>No open shifts available right now.</p>
               ) : (

@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import { getStoredUser } from '../../auth/services/auth.service';
 import { listEmployees, createEmployee, createEmployeeAccount } from '../services/employees.service';
 import type { Employee, EmployeeRole, EmploymentType } from '../../../shared/types/api.types';
@@ -428,7 +429,7 @@ export function ManagerTeamPage() {
           )}
         </div>
 
-        {loading && <div className={styles.empty}>Loading team…</div>}
+        {loading && <Spinner size="medium" label="Loading team…" />}
         {!loading && error && <div className={styles.empty} style={{ color: '#EF4444' }}>{error}</div>}
         {!loading && !error && filtered.length === 0 && (
           <div className={styles.empty}>

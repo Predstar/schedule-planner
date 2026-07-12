@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import { getWeeklySchedule } from '../services/schedules.service';
 import { getWeeklyAvailability } from '../../availability/services/availability.service';
 import { listEmployees } from '../../employees/services/employees.service';
@@ -81,6 +82,7 @@ export function ManagerDashboardPage() {
   const [pendingSwaps,      setPendingSwaps]       = useState<SwapRequest[]>([]);
   const [assignments,       setAssignments]        = useState<Assignment[]>([]);
   const [statsError,        setStatsError]         = useState(false);
+  const [statsLoading,      setStatsLoading]       = useState(true);
 
   // Live countdown tick
   const [, setTick] = useState(0);
@@ -91,6 +93,7 @@ export function ManagerDashboardPage() {
 
   const loadStats = useCallback(async () => {
     setStatsError(false);
+    setStatsLoading(true);
     const weekStart = getWeekStart(today);
     // Fetch current week's date range for open shifts
     const from = weekStart;
@@ -124,6 +127,8 @@ export function ManagerDashboardPage() {
       setOpenShiftCount(openCount);
     } catch {
       setStatsError(true);
+    } finally {
+      setStatsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -204,6 +209,9 @@ export function ManagerDashboardPage() {
         </div>
 
         {/* Stat cards */}
+        {statsLoading ? (
+          <Spinner size="medium" />
+        ) : (
         <div className={styles.statGrid}>
           <div className={styles.statCard}>
             <div className={styles.statValue}>
@@ -227,6 +235,7 @@ export function ManagerDashboardPage() {
             <div className={styles.statLabel}>Swap Requests</div>
           </div>
         </div>
+        )}
 
         {/* Swap alert — only shown when there are pending swaps */}
         {pendingSwaps.length > 0 && (

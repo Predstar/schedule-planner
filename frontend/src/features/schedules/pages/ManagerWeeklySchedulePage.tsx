@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import {
   getWeeklySchedule,
   autoGenerateSchedule,
@@ -321,7 +322,7 @@ export function ManagerWeeklySchedulePage() {
         {/* Error */}
         {error && <div className={styles.stateErr}>{error}</div>}
 
-        {loading && <div className={styles.state}>Loading…</div>}
+        {loading && <Spinner size="medium" />}
 
         {!loading && !error && (
           <>

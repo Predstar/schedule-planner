@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import { getMyRoleSchedule } from '../../schedules/services/schedules.service';
 import { getStoredUser } from '../../auth/services/auth.service';
 import type { Assignment } from '../../../shared/types/api.types';
@@ -214,6 +215,7 @@ export function EmployeeShiftsPage() {
         <div className={styles.upcomingSection}>
           <p className={styles.upcomingLabel}>UPCOMING ({upcomingAssignments.length})</p>
           <div className={styles.upcomingList}>
+            {loading && upcomingAssignments.length === 0 && <Spinner size="small" />}
             {upcomingAssignments.length === 0 && !loading && (
               <p className={styles.noShift}>No upcoming shifts. Ask your manager to publish the schedule.</p>
             )}

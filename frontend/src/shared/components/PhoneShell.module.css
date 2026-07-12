@@ -1,7 +1,7 @@
 .shell {
   width: 100%;
   max-width: 390px;
-  min-height: 844px;
+  height: 844px;
   max-height: 100dvh;
   background: var(--surface);
   border-radius: 48px;
@@ -15,15 +15,15 @@
 @media (min-width: 900px) {
   .shell {
     max-width: 480px;
-    min-height: 900px;
+    height: 900px;
   }
 }
 
 @media (max-width: 440px) {
   .shell {
     max-width: 100%;
-    min-height: 100dvh;
-    max-height: none;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
     box-shadow: none;
   }

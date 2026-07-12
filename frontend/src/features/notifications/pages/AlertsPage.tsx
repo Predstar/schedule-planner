@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
+import { Spinner } from '../../../shared/components/Spinner';
 import { getMyNotifications, markNotificationAsRead } from '../services/notifications.service';
 import type { Notification } from '../../../shared/types/api.types';
 import styles from './AlertsPage.module.css';
@@ -24,33 +25,26 @@ function formatRelativeTime(iso: string): string {
 }
 
 export function AlertsPage({ role }: AlertsPageProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      setNotifications(await getMyNotifications());
-    } catch {
-      setLoadError('Failed to load alerts. Try again.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { load(); }, []);
+  const queryClient = useQueryClient();
+  const {
+    data: notifications = [],
+    isLoading: loading,
+    isError,
+  } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: getMyNotifications,
+  });
+  const loadError = isError ? 'Failed to load alerts. Try again.' : null;
 
   async function handleOpen(notification: Notification) {
     if (notification.read || notification.id.startsWith('availability-reminder-')) return;
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
+    queryClient.setQueryData<Notification[]>(['notifications'], (prev) =>
+      prev?.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
     );
     try {
       await markNotificationAsRead(notification.id);
     } catch {
-      // best-effort; local state already reflects read
+      // best-effort; local cache already reflects read
     }
   }
 
@@ -66,7 +60,7 @@ export function AlertsPage({ role }: AlertsPageProps) {
 
         <div className={styles.list}>
           {loading ? (
-            <p className={styles.empty}>Loading…</p>
+            <Spinner size="medium" />
           ) : loadError ? (
             <p className={styles.empty}>{loadError}</p>
           ) : notifications.length === 0 ? (

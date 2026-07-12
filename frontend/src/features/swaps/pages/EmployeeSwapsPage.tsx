@@ -241,7 +241,7 @@ export function EmployeeSwapsPage() {
                             onClick={() => handleCancel(post.id)}
                             disabled={actingPostId === post.id}
                           >
-                            {actingPostId === post.id ? '…' : 'Cancel'}
+                            {actingPostId === post.id ? <Spinner size="small" inline /> : 'Cancel'}
                           </button>
                         </div>
                       )}
@@ -278,7 +278,7 @@ export function EmployeeSwapsPage() {
                         onClick={() => handleClaim(post.id)}
                         disabled={actingPostId === post.id}
                       >
-                        {actingPostId === post.id ? '…' : 'Claim this shift'}
+                        {actingPostId === post.id ? <Spinner size="small" inline onAccent /> : 'Claim this shift'}
                       </button>
                     </div>
                   </div>
@@ -332,7 +332,7 @@ export function EmployeeSwapsPage() {
                 onClick={handleSubmit}
                 disabled={!canSubmit || submitting}
               >
-                {submitting ? 'Posting…' : 'Post as Open'}
+                {submitting ? <Spinner size="small" inline onAccent /> : 'Post as Open'}
               </button>
             </div>
           </div>

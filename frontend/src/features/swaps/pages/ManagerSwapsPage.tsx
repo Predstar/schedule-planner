@@ -20,6 +20,7 @@ export function ManagerSwapsPage() {
   const [actingClaimId, setActingClaimId] = useState<string | null>(null);
   const [decidedSwaps, setDecidedSwaps] = useState<Record<string, 'APPROVED' | 'REJECTED'>>({});
   const [decidedClaims, setDecidedClaims] = useState<Record<string, 'APPROVED' | 'REJECTED'>>({});
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -42,10 +43,13 @@ export function ManagerSwapsPage() {
 
   async function handleApprove(swapId: string) {
     setActingSwapId(swapId);
+    setActionError(null);
     try {
       await approveSwapRequest(swapId);
       setDecidedSwaps((prev) => ({ ...prev, [swapId]: 'APPROVED' }));
       await load();
+    } catch (e: unknown) {
+      setActionError((e as { message?: string })?.message ?? 'Failed to approve swap request.');
     } finally {
       setActingSwapId(null);
     }
@@ -53,10 +57,13 @@ export function ManagerSwapsPage() {
 
   async function handleReject(swapId: string) {
     setActingSwapId(swapId);
+    setActionError(null);
     try {
       await rejectSwapRequest(swapId);
       setDecidedSwaps((prev) => ({ ...prev, [swapId]: 'REJECTED' }));
       await load();
+    } catch (e: unknown) {
+      setActionError((e as { message?: string })?.message ?? 'Failed to reject swap request.');
     } finally {
       setActingSwapId(null);
     }
@@ -64,10 +71,20 @@ export function ManagerSwapsPage() {
 
   async function handleApproveClaim(postId: string, claimId: string) {
     setActingClaimId(claimId);
+    setActionError(null);
     try {
       await approveShiftClaim(postId, claimId);
       setDecidedClaims((prev) => ({ ...prev, [claimId]: 'APPROVED' }));
       await load();
+    } catch (e: unknown) {
+      const err = e as { message?: string; code?: string };
+      setActionError(
+        err?.code === 'SHIFT_OVERLAP'
+          ? 'Cannot approve — the claiming employee already has a shift at this time.'
+          : err?.code === 'WEEKLY_HOUR_LIMIT_EXCEEDED'
+            ? 'Cannot approve — this would exceed the claiming employee’s weekly hour limit.'
+            : err?.message ?? 'Failed to approve shift claim.',
+      );
     } finally {
       setActingClaimId(null);
     }
@@ -75,10 +92,13 @@ export function ManagerSwapsPage() {
 
   async function handleRejectClaim(postId: string, claimId: string) {
     setActingClaimId(claimId);
+    setActionError(null);
     try {
       await rejectShiftClaim(postId, claimId);
       setDecidedClaims((prev) => ({ ...prev, [claimId]: 'REJECTED' }));
       await load();
+    } catch (e: unknown) {
+      setActionError((e as { message?: string })?.message ?? 'Failed to reject shift claim.');
     } finally {
       setActingClaimId(null);
     }
@@ -94,6 +114,12 @@ export function ManagerSwapsPage() {
     <PhoneShell>
       <StatusBar />
       <div className={styles.page}>
+
+        {actionError && (
+          <div style={{ background: '#FEE2E2', color: '#B91C1C', borderRadius: 10, padding: '10px 14px', fontSize: 13, fontFamily: 'Inter, sans-serif' }}>
+            {actionError}
+          </div>
+        )}
 
         <div className={styles.header}>
           <h1 className={styles.title}>Swap Requests</h1>

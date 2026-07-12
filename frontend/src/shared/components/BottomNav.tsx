@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { getMyNotifications } from '../../features/notifications/services/notifications.service';
 import styles from './BottomNav.module.css';
 
 type NavRole = 'manager' | 'employee';
@@ -127,6 +129,17 @@ const employeeNav = [
 
 export function BottomNav({ role }: Props) {
   const items = role === 'manager' ? managerNav : employeeNav;
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMyNotifications()
+      .then((notifications) => {
+        if (!cancelled) setHasUnread(notifications.some((n) => !n.read));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <nav className={styles.nav}>
@@ -145,6 +158,7 @@ export function BottomNav({ role }: Props) {
                 style={{ stroke: isActive ? 'var(--accent)' : 'var(--text-muted)' }}
               >
                 {item.icon}
+                {item.to.endsWith('/alerts') && hasUnread && <span className={styles.badgeDot} />}
               </span>
               <span className={styles.label}>{item.label}</span>
             </>

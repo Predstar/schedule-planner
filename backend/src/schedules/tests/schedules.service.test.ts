@@ -16,6 +16,17 @@ function approvedSchedule() {
   return draftSchedule({ status: 'APPROVED' });
 }
 
+// A Monday far enough in the future that "week already ended" guards never trip in tests.
+function futureMonday() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  const day = d.getDay();
+  const diff = day === 0 ? 1 : 8 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 function waiterShift(overrides: Partial<any> = {}) {
   return {
     id: 'shift-1',
@@ -130,8 +141,11 @@ describe('SchedulesService', () => {
   });
 
   it('approving a DRAFT schedule publishes it directly, with no separate publish step', async () => {
-    prismaService.schedule.findUnique = vi.fn().mockResolvedValue(draftSchedule());
-    prismaService.schedule.update = vi.fn().mockResolvedValue(draftSchedule({ status: 'PUBLISHED' }));
+    const weekStartDate = futureMonday();
+    prismaService.schedule.findUnique = vi.fn().mockResolvedValue(draftSchedule({ weekStartDate }));
+    prismaService.schedule.update = vi.fn().mockResolvedValue(
+      draftSchedule({ weekStartDate, status: 'PUBLISHED' }),
+    );
 
     await expect(
       schedulesService.approveSchedule('schedule-1'),
@@ -150,6 +164,16 @@ describe('SchedulesService', () => {
     await expect(
       schedulesService.approveSchedule('schedule-1'),
     ).rejects.toMatchObject({ code: 'SCHEDULE_NOT_IN_DRAFT_STATUS' });
+  });
+
+  it('rejects approving a DRAFT schedule whose week has already ended with 409 SCHEDULE_WEEK_IN_PAST', async () => {
+    prismaService.schedule.findUnique = vi.fn().mockResolvedValue(
+      draftSchedule({ weekStartDate: new Date('2020-01-06T00:00:00.000Z') }),
+    );
+
+    await expect(
+      schedulesService.approveSchedule('schedule-1'),
+    ).rejects.toMatchObject({ code: 'SCHEDULE_WEEK_IN_PAST' });
   });
 
   it('WAITER employee sees all published WAITER assignments across multiple employees and zero BARTENDER assignments', async () => {
@@ -503,14 +527,16 @@ describe('SchedulesService', () => {
   });
 
   it('approves a DRAFT schedule successfully', async () => {
-    prismaService.schedule.findUnique = vi.fn().mockResolvedValue(draftSchedule());
+    const weekStartDate = futureMonday();
+    const weekStartIso = weekStartDate.toISOString().slice(0, 10);
+    prismaService.schedule.findUnique = vi.fn().mockResolvedValue(draftSchedule({ weekStartDate }));
     prismaService.schedule.update = vi.fn().mockResolvedValue(
-      draftSchedule({ status: 'APPROVED' }),
+      draftSchedule({ weekStartDate, status: 'APPROVED' }),
     );
 
     await expect(schedulesService.approveSchedule('schedule-1')).resolves.toEqual({
       id: 'schedule-1',
-      weekStartDate: '2026-04-06',
+      weekStartDate: weekStartIso,
       status: 'APPROVED',
       assignments: [],
     });

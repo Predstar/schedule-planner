@@ -63,6 +63,7 @@ function getWeekStart(date: Date): string {
 export function ManagerDashboardPage() {
   const navigate = useNavigate();
   const today = new Date();
+  const todayIso = today.toISOString().slice(0, 10);
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate());
@@ -148,7 +149,8 @@ export function ManagerDashboardPage() {
 
   function openModal() {
     const d = selectedDay ?? today.getDate();
-    setShiftDate(`${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    const candidate = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    setShiftDate(candidate < todayIso ? todayIso : candidate);
     setShowModal(true);
   }
 
@@ -367,7 +369,7 @@ export function ManagerDashboardPage() {
             <div className={styles.formRow}>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Date</label>
-                <input className={styles.fieldInput} type="date" value={shiftDate} onChange={e => setShiftDate(e.target.value)} />
+                <input className={styles.fieldInput} type="date" min={todayIso} value={shiftDate} onChange={e => setShiftDate(e.target.value)} />
               </div>
             </div>
 
@@ -420,7 +422,7 @@ export function ManagerDashboardPage() {
               </div>
             </div>
 
-            <button className={styles.saveBtn} onClick={() => { if (shiftDate) setShowModal(false); }}>
+            <button className={styles.saveBtn} onClick={() => { if (shiftDate && shiftDate >= todayIso) setShowModal(false); }}>
               Add Shift
             </button>
           </div>

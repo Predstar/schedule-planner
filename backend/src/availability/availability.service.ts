@@ -237,8 +237,6 @@ export class AvailabilityService {
   }
 
   private ensureEmployeeDeadline(weekStartDate: string): void {
-    // TEMP: deadline enforcement disabled for manual testing — re-enable before real use
-    return;
     const deadline = DateTime.fromISO(weekStartDate, { zone: BERLIN_TIMEZONE })
       .startOf('day')
       .minus({ days: 2 });

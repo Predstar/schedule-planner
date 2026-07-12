@@ -241,10 +241,11 @@ export function ManagerWeeklySchedulePage() {
     doc.save(`Authentikka_Schedule_${toISODate(weekStart)}.pdf`);
   }
 
+  const isPastWeek = addDays(weekStart, 6) < getMondayOf(new Date());
   const status = schedule?.status ?? null;
-  const canGenerate = !status || status === 'DRAFT' || status === 'REJECTED';
-  const canApprove  = status === 'DRAFT';
-  const canPublish  = status === 'APPROVED';
+  const canGenerate = (!status || status === 'DRAFT' || status === 'REJECTED') && !isPastWeek;
+  const canApprove  = status === 'DRAFT' && !isPastWeek;
+  const canPublish  = status === 'APPROVED' && !isPastWeek;
   const canExport   = !!schedule && assignments.length > 0;
 
   return (

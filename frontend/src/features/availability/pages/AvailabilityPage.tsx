@@ -156,8 +156,7 @@ export function AvailabilityPage({ role }: Props) {
 
   const weekLabel = `${toDisplay(monday)}–${toDisplay(weekEnd)}, ${monday.getFullYear()}`;
   const hoursLeft = hoursUntilDeadline(monday);
-  const deadlinePassed = false; // TODO: remove — temporarily forced off for testing
-  void hoursLeft;
+  const deadlinePassed = hoursLeft <= 0;
 
   const initialDays = buildWeekDaysFromWeekStart(weekStartDate);
   const [days, setDays] = useState<DaySlot[]>(initialDays);

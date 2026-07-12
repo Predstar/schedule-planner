@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { DateTime } from 'luxon';
 import type { AuthUserPayload } from '../auth/types/auth-user-payload.type';
+import { BERLIN_TIMEZONE } from '../availability/availability.constants';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppException } from '../shared/exceptions/app.exception';
@@ -509,6 +510,17 @@ export class SchedulesService {
         409,
         'SCHEDULE_NOT_IN_DRAFT_STATUS',
         'Schedule not in draft status',
+      );
+    }
+
+    const weekEnd = DateTime.fromJSDate(schedule.weekStartDate, { zone: BERLIN_TIMEZONE })
+      .plus({ days: 6 })
+      .endOf('day');
+    if (DateTime.now().setZone(BERLIN_TIMEZONE) > weekEnd) {
+      throw new AppException(
+        409,
+        'SCHEDULE_WEEK_IN_PAST',
+        'Cannot approve a schedule for a week that has already ended',
       );
     }
 

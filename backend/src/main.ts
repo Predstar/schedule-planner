@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import 'dotenv/config';
+import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -8,6 +9,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
@@ -28,10 +30,16 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  const frontendUrl = process.env.FRONTEND_URL;
+  if (!frontendUrl) {
+    throw new Error('FRONTEND_URL environment variable must be set');
+  }
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? true,
+    origin: frontendUrl,
     credentials: true,
   });
+
   await app.listen(process.env.PORT ?? 3000);
 }
 

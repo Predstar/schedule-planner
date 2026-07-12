@@ -871,19 +871,34 @@ export class SchedulesService {
 
     const { assignments } = solveSchedule(solverEmployees, slots);
 
-    for (const assignment of assignments) {
-      const shift = await this.prismaService.shift.create({
-        data: {
-          date: new Date(`${assignment.slot.date}T00:00:00.000Z`),
-          startTime: assignment.slot.startTime,
-          endTime: assignment.slot.endTime,
-          employeeRole: assignment.slot.role as never,
-          requiredCount: 1,
-        },
-      });
+    // Each assignment needs its own Shift row (one seat = one shift with
+    // requiredCount: 1), so we can't createMany + reuse ids. Instead, run all
+    // shift creations as one batched transaction (single round-trip) rather
+    // than sequential awaited creates, then batch the assignment creates the
+    // same way.
+    const shifts = assignments.length
+      ? await this.prismaService.$transaction(
+          assignments.map((assignment) =>
+            this.prismaService.shift.create({
+              data: {
+                date: new Date(`${assignment.slot.date}T00:00:00.000Z`),
+                startTime: assignment.slot.startTime,
+                endTime: assignment.slot.endTime,
+                employeeRole: assignment.slot.role as never,
+                requiredCount: 1,
+              },
+            }),
+          ),
+        )
+      : [];
 
-      await this.prismaService.scheduleAssignment.create({
-        data: { scheduleId: schedule.id, shiftId: shift.id, employeeId: assignment.employeeId },
+    if (shifts.length) {
+      await this.prismaService.scheduleAssignment.createMany({
+        data: shifts.map((shift, i) => ({
+          scheduleId: schedule.id,
+          shiftId: shift.id,
+          employeeId: assignments[i].employeeId,
+        })),
       });
     }
 

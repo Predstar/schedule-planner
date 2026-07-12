@@ -567,4 +567,50 @@ describe('SchedulesService', () => {
 
     throw new Error('Expected SCHEDULE_NOT_APPROVED');
   });
+
+  it('autoGenerateSchedule batches shift/assignment creation instead of one create per assignment', async () => {
+    const weekStart = futureMonday();
+    const weekStartIso = weekStart.toISOString().slice(0, 10);
+    const shiftDate = new Date(weekStart.getTime() + 86400000); // Tuesday, inside the generated week
+
+    prismaService.schedule.findUnique = vi.fn().mockResolvedValue(null);
+    prismaService.schedule.create = vi.fn().mockResolvedValue(draftSchedule({ weekStartDate: weekStart }));
+    prismaService.scheduleAssignment.deleteMany = vi.fn().mockResolvedValue({ count: 0 });
+    prismaService.employee.findMany = vi.fn().mockResolvedValue([
+      {
+        ...waiterEmployee({ id: 'employee-1' }),
+        availabilities: [
+          {
+            status: 'SUBMITTED',
+            entries: [
+              { date: shiftDate, startTime: '09:00', endTime: '18:00', available: true, preferred: false },
+            ],
+          },
+        ],
+      },
+    ]);
+    prismaService.scheduleAssignment.findMany.mockResolvedValueOnce([]); // historical assignments lookup
+
+    let transactionOps = 0;
+    prismaService.shift.create = vi.fn((args: any) =>
+      Promise.resolve({ id: `shift-${++transactionOps}`, ...args.data }),
+    );
+    prismaService.$transaction = vi.fn().mockImplementation((arg: unknown[] | ((tx: unknown) => unknown)) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (tx: unknown) => unknown)(prismaService);
+    });
+    prismaService.scheduleAssignment.createMany = vi.fn().mockResolvedValue({ count: 1 });
+    prismaService.schedule.findUniqueOrThrow = vi.fn().mockResolvedValue(
+      draftSchedule({ weekStartDate: weekStart, assignments: [] }),
+    );
+
+    await schedulesService.autoGenerateSchedule(weekStartIso);
+
+    // One batched transaction call for all shift creates, not N sequential awaited creates.
+    expect(prismaService.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaService.shift.create).toHaveBeenCalled();
+    // Assignments are created via a single createMany, not per-assignment create.
+    expect(prismaService.scheduleAssignment.createMany).toHaveBeenCalledTimes(1);
+    expect(prismaService.scheduleAssignment.create).not.toHaveBeenCalled();
+  });
 });

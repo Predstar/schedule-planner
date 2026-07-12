@@ -18,6 +18,8 @@ export function ManagerSwapsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actingSwapId, setActingSwapId] = useState<string | null>(null);
   const [actingClaimId, setActingClaimId] = useState<string | null>(null);
+  const [decidedSwaps, setDecidedSwaps] = useState<Record<string, 'APPROVED' | 'REJECTED'>>({});
+  const [decidedClaims, setDecidedClaims] = useState<Record<string, 'APPROVED' | 'REJECTED'>>({});
 
   async function load() {
     setLoading(true);
@@ -42,6 +44,7 @@ export function ManagerSwapsPage() {
     setActingSwapId(swapId);
     try {
       await approveSwapRequest(swapId);
+      setDecidedSwaps((prev) => ({ ...prev, [swapId]: 'APPROVED' }));
       await load();
     } finally {
       setActingSwapId(null);
@@ -52,6 +55,7 @@ export function ManagerSwapsPage() {
     setActingSwapId(swapId);
     try {
       await rejectSwapRequest(swapId);
+      setDecidedSwaps((prev) => ({ ...prev, [swapId]: 'REJECTED' }));
       await load();
     } finally {
       setActingSwapId(null);
@@ -62,6 +66,7 @@ export function ManagerSwapsPage() {
     setActingClaimId(claimId);
     try {
       await approveShiftClaim(postId, claimId);
+      setDecidedClaims((prev) => ({ ...prev, [claimId]: 'APPROVED' }));
       await load();
     } finally {
       setActingClaimId(null);
@@ -72,6 +77,7 @@ export function ManagerSwapsPage() {
     setActingClaimId(claimId);
     try {
       await rejectShiftClaim(postId, claimId);
+      setDecidedClaims((prev) => ({ ...prev, [claimId]: 'REJECTED' }));
       await load();
     } finally {
       setActingClaimId(null);
@@ -79,7 +85,9 @@ export function ManagerSwapsPage() {
   }
 
   const postsWithPendingClaims = openShiftPosts.filter(
-    (post) => post.status === 'CLAIMED' && post.claims.some((c) => c.status === 'PENDING'),
+    (post) =>
+      post.claims.some((c) => c.status === 'PENDING' || decidedClaims[c.id]) &&
+      (post.status === 'CLAIMED' || post.claims.some((c) => decidedClaims[c.id])),
   );
 
   return (
@@ -100,19 +108,33 @@ export function ManagerSwapsPage() {
           ) : swaps.length === 0 ? (
             <p className={styles.empty}>No swap requests awaiting approval.</p>
           ) : (
-            swaps.map((swap) => (
+            swaps.map((swap) => {
+              const decided = decidedSwaps[swap.id];
+              return (
               <div key={swap.id} className={styles.card}>
                 <div className={styles.cardTop}>
                   <span className={styles.cardTitle}>
                     {swap.requestingEmployeeName} → {swap.targetEmployeeName}
                   </span>
-                  <span className={styles.statusBadge}>Awaiting Approval</span>
+                  <span
+                    className={styles.statusBadge}
+                    style={
+                      decided === 'APPROVED'
+                        ? { background: '#DCFCE7', color: '#166534' }
+                        : decided === 'REJECTED'
+                          ? { background: '#FEE2E2', color: '#B91C1C' }
+                          : undefined
+                    }
+                  >
+                    {decided === 'APPROVED' ? 'Approved' : decided === 'REJECTED' ? 'Rejected' : 'Awaiting Approval'}
+                  </span>
                 </div>
                 <div className={styles.cardMeta}>
                   {new Date(`${swap.requestingShiftDate}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                   {' · '}{swap.requestingShiftStart}–{swap.requestingShiftEnd}
                 </div>
                 <div className={styles.cardReason}>"{swap.reason}"</div>
+                {!decided && (
                 <div className={styles.cardActions}>
                   <button
                     className={styles.approveBtn}
@@ -129,8 +151,10 @@ export function ManagerSwapsPage() {
                     Reject
                   </button>
                 </div>
+                )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -147,20 +171,34 @@ export function ManagerSwapsPage() {
           ) : (
             postsWithPendingClaims.flatMap((post) =>
               post.claims
-                .filter((claim) => claim.status === 'PENDING')
-                .map((claim) => (
+                .filter((claim) => claim.status === 'PENDING' || decidedClaims[claim.id])
+                .map((claim) => {
+                  const decided = decidedClaims[claim.id];
+                  return (
                   <div key={claim.id} className={styles.card}>
                     <div className={styles.cardTop}>
                       <span className={styles.cardTitle}>
                         {post.postedByEmployeeName} → {claim.claimingEmployeeName}
                       </span>
-                      <span className={styles.statusBadge}>Awaiting Approval</span>
+                      <span
+                        className={styles.statusBadge}
+                        style={
+                          decided === 'APPROVED'
+                            ? { background: '#DCFCE7', color: '#166534' }
+                            : decided === 'REJECTED'
+                              ? { background: '#FEE2E2', color: '#B91C1C' }
+                              : undefined
+                        }
+                      >
+                        {decided === 'APPROVED' ? 'Approved' : decided === 'REJECTED' ? 'Rejected' : 'Awaiting Approval'}
+                      </span>
                     </div>
                     <div className={styles.cardMeta}>
                       {new Date(`${post.shiftDate}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                       {' · '}{post.shiftStartTime}–{post.shiftEndTime}
                     </div>
                     <div className={styles.cardReason}>"{post.reason}"</div>
+                    {!decided && (
                     <div className={styles.cardActions}>
                       <button
                         className={styles.approveBtn}
@@ -177,8 +215,10 @@ export function ManagerSwapsPage() {
                         Reject
                       </button>
                     </div>
+                    )}
                   </div>
-                )),
+                  );
+                }),
             )
           )}
         </div>

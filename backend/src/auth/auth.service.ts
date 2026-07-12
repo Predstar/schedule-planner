@@ -14,6 +14,8 @@ import type { RegisterResponseDto } from './dto/register-response.dto';
 import { MailService } from './mail.service';
 import type { AuthUserPayload, JwtPayload } from './types/auth-user-payload.type';
 
+const CONFIRMATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -41,6 +43,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const confirmationToken = randomBytes(32).toString('hex');
+    const confirmationTokenExpiresAt = new Date(Date.now() + CONFIRMATION_TOKEN_TTL_MS);
 
     await this.prismaService.user.create({
       data: {
@@ -52,6 +55,7 @@ export class AuthService {
         employeeId,
         active: false,
         confirmationToken,
+        confirmationTokenExpiresAt,
       },
     });
 
@@ -71,9 +75,13 @@ export class AuthService {
       throw new AppException(400, 'INVALID_CONFIRMATION_TOKEN', 'Invalid or expired confirmation token');
     }
 
+    if (!user.confirmationTokenExpiresAt || user.confirmationTokenExpiresAt.getTime() < Date.now()) {
+      throw new AppException(400, 'INVALID_CONFIRMATION_TOKEN', 'Invalid or expired confirmation token');
+    }
+
     await this.prismaService.user.update({
       where: { id: user.id },
-      data: { active: true, confirmationToken: null },
+      data: { active: true, confirmationToken: null, confirmationTokenExpiresAt: null },
     });
 
     return { message: 'Email confirmed. You can now log in.' };

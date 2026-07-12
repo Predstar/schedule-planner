@@ -182,7 +182,11 @@ describe('AuthService', () => {
   });
 
   it('confirms an account and clears the confirmation token', async () => {
-    prismaService.user.findUnique = vi.fn().mockResolvedValue({ id: 'user-3', confirmationToken: 'abc123' });
+    prismaService.user.findUnique = vi.fn().mockResolvedValue({
+      id: 'user-3',
+      confirmationToken: 'abc123',
+      confirmationTokenExpiresAt: new Date(Date.now() + 60_000),
+    });
     prismaService.user.update = vi.fn().mockResolvedValue({ id: 'user-3', active: true });
 
     const result = await authService.confirmEmail({ token: 'abc123' });
@@ -190,7 +194,7 @@ describe('AuthService', () => {
     expect(result.message).toMatch(/confirmed/i);
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { id: 'user-3' },
-      data: { active: true, confirmationToken: null },
+      data: { active: true, confirmationToken: null, confirmationTokenExpiresAt: null },
     });
   });
 
@@ -199,6 +203,18 @@ describe('AuthService', () => {
 
     await expect(
       authService.confirmEmail({ token: 'does-not-exist' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIRMATION_TOKEN' });
+  });
+
+  it('rejects confirmation with an expired token', async () => {
+    prismaService.user.findUnique = vi.fn().mockResolvedValue({
+      id: 'user-3',
+      confirmationToken: 'abc123',
+      confirmationTokenExpiresAt: new Date(Date.now() - 60_000),
+    });
+
+    await expect(
+      authService.confirmEmail({ token: 'abc123' }),
     ).rejects.toMatchObject({ code: 'INVALID_CONFIRMATION_TOKEN' });
   });
 });

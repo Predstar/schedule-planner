@@ -74,7 +74,8 @@ model User {
   employeeId        String?        @unique @map("employee_id") @db.Uuid
   employee          Employee?      @relation(fields: [employeeId], references: [id])
   active            Boolean        @default(true)
-  confirmationToken String?        @unique @map("confirmation_token")
+  confirmationToken          String?   @unique @map("confirmation_token")
+  confirmationTokenExpiresAt DateTime? @map("confirmation_token_expires_at")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
   notifications     Notification[]

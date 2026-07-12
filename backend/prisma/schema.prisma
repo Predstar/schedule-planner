@@ -65,20 +65,20 @@ enum NotificationType {
 }
 
 model User {
-  id                String         @id @default(uuid()) @db.Uuid
-  email             String         @unique
-  passwordHash      String         @map("password_hash")
-  firstName         String?        @map("first_name")
-  lastName          String?        @map("last_name")
-  systemRole        SystemRole     @map("system_role")
-  employeeId        String?        @unique @map("employee_id") @db.Uuid
-  employee          Employee?      @relation(fields: [employeeId], references: [id])
-  active            Boolean        @default(true)
-  confirmationToken          String?   @unique @map("confirmation_token")
-  confirmationTokenExpiresAt DateTime? @map("confirmation_token_expires_at")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-  notifications     Notification[]
+  id                         String         @id @default(uuid()) @db.Uuid
+  email                      String         @unique
+  passwordHash               String         @map("password_hash")
+  firstName                  String?        @map("first_name")
+  lastName                   String?        @map("last_name")
+  systemRole                 SystemRole     @map("system_role")
+  employeeId                 String?        @unique @map("employee_id") @db.Uuid
+  employee                   Employee?      @relation(fields: [employeeId], references: [id])
+  active                     Boolean        @default(true)
+  confirmationToken          String?        @unique @map("confirmation_token")
+  confirmationTokenExpiresAt DateTime?      @map("confirmation_token_expires_at")
+  createdAt                  DateTime       @default(now()) @map("created_at")
+  updatedAt                  DateTime       @updatedAt @map("updated_at")
+  notifications              Notification[]
 
   @@map("users")
 }
@@ -130,6 +130,7 @@ model AvailabilityEntry {
   available      Boolean
   preferred      Boolean
 
+  @@index([availabilityId])
   @@map("availability_entries")
 }
 
@@ -144,6 +145,7 @@ model Shift {
   updatedAt     DateTime             @updatedAt @map("updated_at")
   assignments   ScheduleAssignment[]
 
+  @@index([date])
   @@map("shifts")
 }
 
@@ -157,6 +159,7 @@ model Schedule {
   updatedAt       DateTime             @updatedAt @map("updated_at")
 
   @@unique([weekStartDate])
+  @@index([status, weekStartDate])
   @@map("schedules")
 }
 
@@ -173,6 +176,8 @@ model ScheduleAssignment {
   swapRequests   SwapRequest[]
   openShiftPosts OpenShiftPost[]
 
+  @@index([scheduleId, employeeId])
+  @@index([employeeId])
   @@map("schedule_assignments")
 }
 
@@ -189,6 +194,9 @@ model SwapRequest {
   createdAt              DateTime           @default(now()) @map("created_at")
   updatedAt              DateTime           @updatedAt @map("updated_at")
 
+  @@index([requestingEmployeeId])
+  @@index([targetEmployeeId])
+  @@index([status, createdAt])
   @@map("swap_requests")
 }
 
@@ -204,6 +212,9 @@ model OpenShiftPost {
   updatedAt          DateTime            @updatedAt @map("updated_at")
   claims             ShiftClaim[]
 
+  @@index([assignmentId])
+  @@index([postedByEmployeeId])
+  @@index([status, createdAt])
   @@map("open_shift_posts")
 }
 
@@ -217,6 +228,8 @@ model ShiftClaim {
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
+  @@index([openPostId])
+  @@index([claimingEmployeeId])
   @@map("shift_claims")
 }
 
@@ -229,5 +242,6 @@ model Notification {
   read      Boolean          @default(false)
   createdAt DateTime         @default(now()) @map("created_at")
 
+  @@index([userId, read])
   @@map("notifications")
 }

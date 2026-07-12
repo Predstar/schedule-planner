@@ -1,6 +1,8 @@
 .shell {
-  width: 390px;
+  width: 100%;
+  max-width: 390px;
   min-height: 844px;
+  max-height: 100dvh;
   background: var(--surface);
   border-radius: 48px;
   box-shadow: 0 32px 80px rgba(28, 16, 7, 0.22), 0 0 0 1px rgba(107, 79, 42, 0.10);
@@ -10,10 +12,18 @@
   position: relative;
 }
 
+@media (min-width: 900px) {
+  .shell {
+    max-width: 480px;
+    min-height: 900px;
+  }
+}
+
 @media (max-width: 440px) {
   .shell {
-    width: 100%;
-    min-height: 100vh;
+    max-width: 100%;
+    min-height: 100dvh;
+    max-height: none;
     border-radius: 0;
     box-shadow: none;
   }

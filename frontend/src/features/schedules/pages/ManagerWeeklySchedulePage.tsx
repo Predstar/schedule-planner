@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { BottomNav } from '../../../shared/components/BottomNav';
@@ -80,11 +81,19 @@ function formatWeekLabel(monday: Date): string {
 
 export function ManagerWeeklySchedulePage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
-  const [schedule,  setSchedule]  = useState<Schedule | null>(null);
-  const [loading, setLoading]     = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error,   setError]       = useState('');
+  const [actionError, setActionError] = useState('');
   const [toast,   setToast]       = useState('');
+  const queryClient = useQueryClient();
+
+  const weekStartIso = toISODate(weekStart);
+  const scheduleQuery = useQuery({
+    queryKey: ['weekly-schedule', weekStartIso],
+    queryFn: () => getWeeklySchedule(weekStartIso),
+  });
+  const schedule = scheduleQuery.data ?? null;
+  const loading = scheduleQuery.isLoading;
+  const error = actionError;
 
   const assignments: Assignment[] = schedule?.assignments ?? [];
 
@@ -92,15 +101,6 @@ export function ManagerWeeklySchedulePage() {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   }
-
-  useEffect(() => {
-    setLoading(true);
-    setError('');
-    getWeeklySchedule(toISODate(weekStart))
-      .then(s => setSchedule(s))
-      .catch(() => setSchedule(null))
-      .finally(() => setLoading(false));
-  }, [weekStart]);
 
   const weekDates = Array.from({ length: 7 }, (_, i) => toISODate(addDays(weekStart, i)));
 
@@ -121,16 +121,17 @@ export function ManagerWeeklySchedulePage() {
   async function handleGenerate() {
     // Always generate for next week (where seed availability exists)
     const nextWeek = getNextMonday();
+    const nextWeekIso = toISODate(nextWeek);
     setWeekStart(nextWeek);
     setActionLoading(true);
-    setError('');
+    setActionError('');
     try {
-      const s = await autoGenerateSchedule(toISODate(nextWeek));
-      setSchedule(s);
+      const s = await autoGenerateSchedule(nextWeekIso);
+      queryClient.setQueryData(['weekly-schedule', nextWeekIso], s);
       showToast(`Schedule generated — ${s.assignments.length} assignments created`);
     } catch (e: unknown) {
       const msg = (e as { message?: string })?.message ?? 'Generation failed';
-      setError(msg);
+      setActionError(msg);
     } finally {
       setActionLoading(false);
     }
@@ -139,12 +140,13 @@ export function ManagerWeeklySchedulePage() {
   async function handleApprove() {
     if (!schedule) return;
     setActionLoading(true);
+    setActionError('');
     try {
       const s = await approveSchedule(schedule.id);
-      setSchedule(s);
+      queryClient.setQueryData(['weekly-schedule', weekStartIso], s);
       showToast('Schedule approved');
     } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? 'Approve failed');
+      setActionError((e as { message?: string })?.message ?? 'Approve failed');
     } finally {
       setActionLoading(false);
     }
@@ -153,12 +155,13 @@ export function ManagerWeeklySchedulePage() {
   async function handlePublish() {
     if (!schedule) return;
     setActionLoading(true);
+    setActionError('');
     try {
       const s = await publishSchedule(schedule.id);
-      setSchedule(s);
+      queryClient.setQueryData(['weekly-schedule', weekStartIso], s);
       showToast('Schedule published — employees can now see their shifts');
     } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? 'Publish failed');
+      setActionError((e as { message?: string })?.message ?? 'Publish failed');
     } finally {
       setActionLoading(false);
     }

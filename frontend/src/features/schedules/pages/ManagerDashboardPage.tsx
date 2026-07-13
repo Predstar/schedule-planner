@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { BottomNav } from '../../../shared/components/BottomNav';
@@ -76,15 +77,6 @@ export function ManagerDashboardPage() {
   const [shiftRole,    setShiftRole]    = useState('any');
   const [shiftEmployee, setShiftEmployee] = useState('Leave open...');
 
-  // Live data
-  const [availabilityCount, setAvailabilityCount] = useState<number | null>(null);
-  const [totalEmployees,    setTotalEmployees]     = useState<number | null>(null);
-  const [openShiftCount,    setOpenShiftCount]     = useState<number | null>(null);
-  const [pendingSwaps,      setPendingSwaps]       = useState<SwapRequest[]>([]);
-  const [assignments,       setAssignments]        = useState<Assignment[]>([]);
-  const [statsError,        setStatsError]         = useState(false);
-  const [statsLoading,      setStatsLoading]       = useState(true);
-
   // Live countdown tick
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -92,49 +84,39 @@ export function ManagerDashboardPage() {
     return () => clearInterval(id);
   }, []);
 
-  const loadStats = useCallback(async () => {
-    setStatsError(false);
-    setStatsLoading(true);
-    const weekStart = getWeekStart(today);
-    // Fetch current week's date range for open shifts
-    const from = weekStart;
-    const to   = new Date(new Date(weekStart).getTime() + 6 * 86400000).toISOString().slice(0, 10);
+  const weekStart = getWeekStart(today);
+  const weekRangeTo = new Date(new Date(weekStart).getTime() + 6 * 86400000).toISOString().slice(0, 10);
 
-    try {
-      const [avail, emps, shifts, swaps, schedule] = await Promise.all([
-        getWeeklyAvailability(weekStart).catch(() => []),
-        listEmployees({ active: true }).catch(() => []),
-        listShifts(from, to).catch(() => []),
-        getPendingSwapRequests().catch(() => []),
-        getWeeklySchedule(weekStart).catch(() => null),
-      ]);
+  const [availQuery, empsQuery, shiftsQuery, swapsQuery, scheduleQuery] = useQueries({
+    queries: [
+      { queryKey: ['weekly-availability', weekStart], queryFn: () => getWeeklyAvailability(weekStart) },
+      { queryKey: ['employees', { active: true }], queryFn: () => listEmployees({ active: true }) },
+      { queryKey: ['shifts', weekStart, weekRangeTo], queryFn: () => listShifts(weekStart, weekRangeTo) },
+      { queryKey: ['pending-swap-requests'], queryFn: getPendingSwapRequests },
+      { queryKey: ['weekly-schedule', weekStart], queryFn: () => getWeeklySchedule(weekStart) },
+    ],
+  });
 
-      setAvailabilityCount((avail as unknown[]).length);
-      setTotalEmployees((emps as unknown[]).length);
-      setPendingSwaps(swaps as SwapRequest[]);
-      setAssignments(schedule ? (schedule as { assignments: Assignment[] }).assignments : []);
+  const statsLoading = [availQuery, empsQuery, shiftsQuery, swapsQuery, scheduleQuery].some(q => q.isLoading);
+  const statsError = [availQuery, empsQuery, shiftsQuery, swapsQuery, scheduleQuery].every(q => q.isError);
 
-      // Open shifts = shifts with requiredCount > number of assignments for that shiftId
-      const assignmentsByShift = new Map<string, number>();
-      if (schedule) {
-        for (const a of (schedule as { assignments: Assignment[] }).assignments) {
-          assignmentsByShift.set(a.shiftId, (assignmentsByShift.get(a.shiftId) ?? 0) + 1);
-        }
-      }
-      const openCount = (shifts as { id: string; requiredCount: number }[]).reduce((sum, s) => {
-        const filled = assignmentsByShift.get(s.id) ?? 0;
-        return sum + Math.max(0, s.requiredCount - filled);
-      }, 0);
-      setOpenShiftCount(openCount);
-    } catch {
-      setStatsError(true);
-    } finally {
-      setStatsLoading(false);
+  const availabilityCount = availQuery.data?.length ?? null;
+  const totalEmployees = empsQuery.data?.length ?? null;
+  const pendingSwaps: SwapRequest[] = swapsQuery.data ?? [];
+  const assignments: Assignment[] = scheduleQuery.data?.assignments ?? [];
+
+  const openShiftCount = useMemo(() => {
+    const shifts = shiftsQuery.data ?? [];
+    const scheduleAssignments = scheduleQuery.data?.assignments ?? [];
+    const assignmentsByShift = new Map<string, number>();
+    for (const a of scheduleAssignments) {
+      assignmentsByShift.set(a.shiftId, (assignmentsByShift.get(a.shiftId) ?? 0) + 1);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => { loadStats(); }, [loadStats]);
+    return shifts.reduce((sum, s) => {
+      const filled = assignmentsByShift.get(s.id) ?? 0;
+      return sum + Math.max(0, s.requiredCount - filled);
+    }, 0);
+  }, [shiftsQuery.data, scheduleQuery.data]);
 
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }

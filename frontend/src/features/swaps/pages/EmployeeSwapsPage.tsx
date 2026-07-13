@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
@@ -51,13 +52,9 @@ function formatShiftLabel(dateIso: string, start: string, end: string): string {
 export function EmployeeSwapsPage() {
   const storedUser = getStoredUser();
   const myEmployeeId = storedUser?.employeeId ?? null;
+  const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<'mine' | 'open'>('mine');
-  const [myShifts, setMyShifts] = useState<Assignment[]>([]);
-  const [myPosts, setMyPosts] = useState<OpenShiftPost[]>([]);
-  const [openPosts, setOpenPosts] = useState<OpenShiftPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
@@ -66,50 +63,62 @@ export function EmployeeSwapsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [actingPostId, setActingPostId] = useState<string | null>(null);
 
-  async function loadAll() {
-    if (!myEmployeeId) return;
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const today = toIso(new Date());
-      const firstMonday = getMondayOf(new Date());
-      const mondays: string[] = [];
-      for (let i = 0; i < 8; i++) {
-        const d = new Date(firstMonday);
-        d.setDate(d.getDate() + i * 7);
-        mondays.push(toIso(d));
-      }
+  const mondays = useMemo(() => {
+    const firstMonday = getMondayOf(new Date());
+    return Array.from({ length: 8 }, (_, i) => {
+      const d = new Date(firstMonday);
+      d.setDate(d.getDate() + i * 7);
+      return toIso(d);
+    });
+  }, []);
 
-      const [schedules, mine, open] = await Promise.all([
-        Promise.all(mondays.map((m) => getMyRoleSchedule(m).catch(() => null))),
-        getMyOpenShiftPosts(),
-        getOpenShiftPosts(),
-      ]);
+  const shiftQueries = useQueries({
+    queries: mondays.map((monday) => ({
+      queryKey: ['my-role-schedule', monday],
+      queryFn: () => getMyRoleSchedule(monday),
+      enabled: Boolean(myEmployeeId),
+      retry: 1,
+    })),
+  });
 
-      const byId = new Map<string, Assignment>();
-      for (const schedule of schedules) {
-        for (const a of schedule?.assignments ?? []) {
-          if (a.employeeId === myEmployeeId && a.date >= today) {
-            byId.set(a.assignmentId, a);
-          }
+  const myPostsQuery = useQuery({
+    queryKey: ['my-open-shift-posts'],
+    queryFn: getMyOpenShiftPosts,
+    enabled: Boolean(myEmployeeId),
+  });
+
+  const openPostsQuery = useQuery({
+    queryKey: ['open-shift-posts'],
+    queryFn: getOpenShiftPosts,
+    enabled: Boolean(myEmployeeId),
+  });
+
+  const loading = shiftQueries.some(q => q.isLoading) || myPostsQuery.isLoading || openPostsQuery.isLoading;
+  const loadError = shiftQueries.some(q => q.isError) || myPostsQuery.isError || openPostsQuery.isError
+    ? 'Failed to load shift swaps. Try again.'
+    : null;
+
+  const myShifts = useMemo(() => {
+    const today = toIso(new Date());
+    const byId = new Map<string, Assignment>();
+    for (const q of shiftQueries) {
+      for (const a of q.data?.assignments ?? []) {
+        if (a.employeeId === myEmployeeId && a.date >= today) {
+          byId.set(a.assignmentId, a);
         }
       }
-      const mineShifts = Array.from(byId.values()).sort((a, b) => a.date.localeCompare(b.date));
-
-      setMyShifts(mineShifts);
-      setMyPosts(mine);
-      setOpenPosts(open);
-    } catch {
-      setLoadError('Failed to load shift swaps. Try again.');
-    } finally {
-      setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    loadAll();
+    return Array.from(byId.values()).sort((a, b) => a.date.localeCompare(b.date));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myEmployeeId]);
+  }, [shiftQueries.map(q => q.dataUpdatedAt).join(','), myEmployeeId]);
+
+  const myPosts = myPostsQuery.data ?? [];
+  const openPosts = openPostsQuery.data ?? [];
+
+  function invalidateAll() {
+    queryClient.invalidateQueries({ queryKey: ['my-open-shift-posts'] });
+    queryClient.invalidateQueries({ queryKey: ['open-shift-posts'] });
+  }
 
   const canSubmit = Boolean(selectedAssignmentId) && reason.trim().length > 0;
 
@@ -125,7 +134,7 @@ export function EmployeeSwapsPage() {
       setShowModal(false);
       setSelectedAssignmentId('');
       setReason('');
-      await loadAll();
+      invalidateAll();
     } catch (e: unknown) {
       setSubmitError((e as { message?: string })?.message ?? 'Failed to post shift as open.');
     } finally {
@@ -137,7 +146,7 @@ export function EmployeeSwapsPage() {
     setActingPostId(postId);
     try {
       await claimOpenShiftPost(postId);
-      await loadAll();
+      invalidateAll();
     } finally {
       setActingPostId(null);
     }
@@ -147,7 +156,7 @@ export function EmployeeSwapsPage() {
     setActingPostId(postId);
     try {
       await cancelOpenShiftPost(postId);
-      await loadAll();
+      invalidateAll();
     } finally {
       setActingPostId(null);
     }

@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AvailabilityPage } from './AvailabilityPage';
+
+function renderWithClient(ui: ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const getStoredUserMock = vi.fn();
 const listEmployeesMock = vi.fn();
@@ -103,7 +111,7 @@ describe('AvailabilityPage', () => {
       },
     ]);
 
-    render(<AvailabilityPage role="manager" />);
+    renderWithClient(<AvailabilityPage role="manager" />);
 
     expect(await screen.findByLabelText('Employee')).toBeInTheDocument();
 
@@ -147,7 +155,7 @@ describe('AvailabilityPage', () => {
       ],
     });
 
-    render(<AvailabilityPage role="manager" />);
+    renderWithClient(<AvailabilityPage role="manager" />);
 
     await waitFor(() => {
       expect(getEmployeeAvailabilityMock).toHaveBeenCalledWith('emp-7', weekStartDate);
@@ -182,7 +190,7 @@ describe('AvailabilityPage', () => {
       ],
     });
 
-    render(<AvailabilityPage role="employee" />);
+    renderWithClient(<AvailabilityPage role="employee" />);
 
     const submitButton = await screen.findByRole('button', { name: /Update Availability/i });
     fireEvent.click(submitButton);

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
@@ -263,23 +264,26 @@ function AddEmployeeModal({ onClose, onAdded }: AddModalProps) {
 
 export function ManagerTeamPage() {
   const isAdmin = getStoredUser()?.systemRole === 'ADMIN';
-  const [employees,  setEmployees]  = useState<Employee[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState('');
+  const queryClient = useQueryClient();
+  const {
+    data: employees = [],
+    isLoading: loading,
+    isError,
+  } = useQuery({
+    queryKey: ['employees', { active: true }],
+    queryFn: () => listEmployees({ active: true }),
+  });
+  const error = isError ? 'Failed to load employees.' : '';
   const [activeRole, setActiveRole] = useState<FilterRole>('all');
   const [dropOpen,   setDropOpen]   = useState(false);
   const [selected,   setSelected]   = useState<Employee | null>(null);
   const [showAdd,    setShowAdd]    = useState(false);
 
-  useEffect(() => {
-    listEmployees({ active: true })
-      .then(setEmployees)
-      .catch(() => setError('Failed to load employees.'))
-      .finally(() => setLoading(false));
-  }, []);
-
   function handleAdded(emp: Employee) {
-    setEmployees(prev => [emp, ...prev]);
+    queryClient.setQueryData<Employee[]>(
+      ['employees', { active: true }],
+      (prev) => [emp, ...(prev ?? [])],
+    );
   }
 
   const filtered = activeRole === 'all'

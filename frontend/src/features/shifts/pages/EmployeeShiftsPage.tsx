@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
@@ -41,53 +42,47 @@ export function EmployeeShiftsPage() {
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string>('');
 
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
-
-  const fetchWeek = useCallback(async (monday: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const schedule = await getMyRoleSchedule(monday);
-      setAssignments(prev => {
-        const keyOf = (a: Assignment) => a.assignmentId ?? a.id!;
-        const byId = new Map(prev.map(a => [keyOf(a), a]));
-        for (const a of schedule.assignments) byId.set(keyOf(a), a);
-        return Array.from(byId.values());
-      });
-    } catch (e: unknown) {
-      const err = e as { statusCode?: number };
-      if (err?.statusCode === 404) {
-        // no published schedule this week — that's fine
-      } else {
-        setError('Could not load shifts.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
+  const mondays = useMemo(() => {
     const firstDay = new Date(calYear, calMonth, 1);
     const lastDay  = new Date(calYear, calMonth + 1, 0);
-    const mondays  = new Set<string>();
+    const result   = new Set<string>();
     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      mondays.add(mondayOfWeek(new Date(d)));
+      result.add(mondayOfWeek(new Date(d)));
     }
-    setAssignments([]);
-    mondays.forEach(m => fetchWeek(m));
-  }, [calYear, calMonth, fetchWeek]);
+    return Array.from(result);
+  }, [calYear, calMonth]);
+
+  const weekQueries = useQueries({
+    queries: mondays.map((monday) => ({
+      queryKey: ['my-role-schedule', monday],
+      queryFn: () => getMyRoleSchedule(monday),
+      retry: (failureCount: number, err: unknown) =>
+        (err as { statusCode?: number })?.statusCode !== 404 && failureCount < 1,
+    })),
+  });
+
+  const loading = weekQueries.some(q => q.isLoading);
+  const error = weekQueries.some(q => q.isError && (q.error as { statusCode?: number })?.statusCode !== 404)
+    ? 'Could not load shifts.'
+    : null;
+
+  const assignments = useMemo(() => {
+    const keyOf = (a: Assignment) => a.assignmentId ?? a.id!;
+    const byId = new Map<string, Assignment>();
+    for (const q of weekQueries) {
+      for (const a of q.data?.assignments ?? []) byId.set(keyOf(a), a);
+    }
+    return Array.from(byId.values());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekQueries.map(q => q.dataUpdatedAt).join(',')]);
 
   function prevMonth() {
     if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
     else setCalMonth(m => m - 1);
-    setAssignments([]);
   }
   function nextMonth() {
     if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
     else setCalMonth(m => m + 1);
-    setAssignments([]);
   }
 
   const assignmentsByDate: Record<string, Assignment[]> = {};

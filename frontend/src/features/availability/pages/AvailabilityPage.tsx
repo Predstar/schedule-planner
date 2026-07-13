@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
@@ -158,115 +159,102 @@ export function AvailabilityPage({ role }: Props) {
   const hoursLeft = hoursUntilDeadline(monday);
   const deadlinePassed = hoursLeft <= 0;
 
-  const initialDays = buildWeekDaysFromWeekStart(weekStartDate);
-  const [days, setDays] = useState<DaySlot[]>(initialDays);
+  const [days, setDays] = useState<DaySlot[]>(() => buildWeekDaysFromWeekStart(weekStartDate));
   const [existingId, setExistingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [weeklyAvailability, setWeeklyAvailability] = useState<AvailabilityResponse[]>([]);
-  const [myEmployee, setMyEmployee] = useState<Employee | null>(null);
 
   const [activeTab, setActiveTab] = useState<'availability' | 'scheduleTable'>('availability');
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
-  const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [scheduleToast, setScheduleToast] = useState('');
 
   const storedUser = getStoredUser();
+  const queryClient = useQueryClient();
+
+  const managerListQuery = useQuery({
+    queryKey: ['employees', { active: true }],
+    queryFn: () => listEmployees({ active: true }),
+    enabled: isManager,
+  });
+  const employees = managerListQuery.data ?? [];
+
+  const weeklyAvailabilityQuery = useQuery({
+    queryKey: ['weekly-availability', weekStartDate],
+    queryFn: () => getWeeklyAvailability(weekStartDate),
+    enabled: isManager,
+  });
+  const weeklyAvailability = weeklyAvailabilityQuery.data ?? [];
+
+  // Keep the selected employee valid as the roster loads/changes.
+  useEffect(() => {
+    if (!isManager || !employees.length) return;
+    setSelectedEmployeeId((current) =>
+      current && employees.some((e) => e.id === current) ? current : employees[0]?.id ?? '',
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManager, employees.map((e) => e.id).join(',')]);
+
   const employeeId = isManager ? (selectedEmployeeId || null) : (storedUser?.employeeId ?? null);
   const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
   const submittedCount = new Set(weeklyAvailability.map((availability) => availability.employeeId)).size;
   const canEdit = Boolean(employeeId) && !deadlinePassed;
+
+  const myEmployeeQuery = useQuery({
+    queryKey: ['employee', storedUser?.employeeId],
+    queryFn: () => getEmployee(storedUser!.employeeId!),
+    enabled: !isManager && Boolean(storedUser?.employeeId),
+  });
+  const myEmployee = myEmployeeQuery.data ?? null;
+
   const activeEmployeeRole = (isManager ? selectedEmployee?.employeeRole : myEmployee?.employeeRole) ?? null;
   const shiftSlots = activeEmployeeRole ? ROLE_SHIFT_SLOTS[activeEmployeeRole] ?? DEFAULT_SHIFT_SLOTS : DEFAULT_SHIFT_SLOTS;
 
+  const employeeAvailabilityQuery = useQuery({
+    queryKey: ['employee-availability', employeeId, weekStartDate],
+    queryFn: () => getEmployeeAvailability(employeeId!, weekStartDate),
+    enabled: Boolean(employeeId),
+  });
+  const loading = isManager
+    ? managerListQuery.isLoading || weeklyAvailabilityQuery.isLoading || (Boolean(employeeId) && employeeAvailabilityQuery.isLoading)
+    : employeeAvailabilityQuery.isLoading;
+
+  // days/existingId/saved mirror editable form state seeded from the loaded
+  // availability — re-sync whenever the underlying week/employee/data changes.
   useEffect(() => {
-    if (!isManager) return;
+    if (!employeeId) {
+      setDays(buildWeekDaysFromWeekStart(weekStartDate));
+      setExistingId(null);
+      setSaved(false);
+      return;
+    }
+    if (employeeAvailabilityQuery.isLoading) return;
 
-    setLoading(true);
-    Promise.all([
-      listEmployees({ active: true }),
-      getWeeklyAvailability(weekStartDate),
-    ])
-      .then(([employeeList, availabilities]) => {
-        setEmployees(employeeList);
-        setWeeklyAvailability(availabilities);
-        setSelectedEmployeeId((current) => {
-          if (current && employeeList.some((employee) => employee.id === current)) {
-            return current;
-          }
-
-          return employeeList[0]?.id ?? '';
-        });
-      })
-      .catch(() => {
-        setError('Failed to load employees or weekly availability. Try again.');
-      })
-      .finally(() => setLoading(false));
-  }, [isManager, weekStartDate]);
-
-  useEffect(() => {
-    if (isManager || !storedUser?.employeeId) return;
-    getEmployee(storedUser.employeeId)
-      .then(setMyEmployee)
-      .catch(() => {/* role defaults to WAITER slot times if this fails */});
-  }, [isManager, storedUser?.employeeId]);
+    const existing = employeeAvailabilityQuery.data ?? null;
+    setExistingId(existing?.id ?? null);
+    setSaved(Boolean(existing));
+    setDays(applyAvailabilityToDays(buildWeekDaysFromWeekStart(weekStartDate), existing, shiftSlots));
+  }, [employeeId, weekStartDate, shiftSlots, employeeAvailabilityQuery.data, employeeAvailabilityQuery.isLoading]);
 
   useEffect(() => {
-    if (isManager || !storedUser?.employeeId) return;
+    if (managerListQuery.isError || weeklyAvailabilityQuery.isError) {
+      setError('Failed to load employees or weekly availability. Try again.');
+    } else if (employeeAvailabilityQuery.isError) {
+      setError(isManager ? 'Failed to load employee availability. Try again.' : 'Failed to load your availability. Try again.');
+    }
+  }, [managerListQuery.isError, weeklyAvailabilityQuery.isError, employeeAvailabilityQuery.isError, isManager]);
 
-    setLoading(true);
-    setError(null);
-    getEmployeeAvailability(storedUser.employeeId, weekStartDate)
-      .then((existing: AvailabilityResponse | null) => {
-        setExistingId(existing?.id ?? null);
-        setSaved(Boolean(existing));
-        setDays(applyAvailabilityToDays(buildWeekDaysFromWeekStart(weekStartDate), existing, shiftSlots));
-      })
-      .catch(() => {
-        setError('Failed to load your availability. Try again.');
-      })
-      .finally(() => setLoading(false));
-  }, [isManager, storedUser?.employeeId, weekStartDate, shiftSlots]);
-
-  useEffect(() => {
-    if (!isManager) return;
-
-    setError(null);
-    setExistingId(null);
-    setSaved(false);
-    setDays(buildWeekDaysFromWeekStart(weekStartDate));
-
-    if (!employeeId) return;
-
-    setLoading(true);
-    getEmployeeAvailability(employeeId, weekStartDate)
-      .then((existing: AvailabilityResponse | null) => {
-        setExistingId(existing?.id ?? null);
-        setSaved(Boolean(existing));
-        setDays(applyAvailabilityToDays(buildWeekDaysFromWeekStart(weekStartDate), existing, shiftSlots));
-      })
-      .catch(() => {
-        setError('Failed to load employee availability. Try again.');
-      })
-      .finally(() => setLoading(false));
-  }, [employeeId, isManager, weekStartDate, shiftSlots]);
-
-  useEffect(() => {
-    if (!isManager || activeTab !== 'scheduleTable') return;
-    setScheduleLoading(true);
-    setScheduleError(null);
-    getWeeklySchedule(weekStartDate)
-      .then(setSchedule)
-      .catch(() => setScheduleError('Failed to load the weekly schedule. Try again.'))
-      .finally(() => setScheduleLoading(false));
-  }, [isManager, activeTab, weekStartDate]);
+  const scheduleQuery = useQuery({
+    queryKey: ['weekly-schedule', weekStartDate],
+    queryFn: () => getWeeklySchedule(weekStartDate),
+    enabled: isManager && activeTab === 'scheduleTable',
+  });
+  const schedule = scheduleQuery.data ?? null;
+  const scheduleLoading = scheduleQuery.isLoading;
+  const [scheduleActionError, setScheduleActionError] = useState<string | null>(null);
+  const scheduleError = scheduleActionError ?? (scheduleQuery.isError ? 'Failed to load the weekly schedule. Try again.' : null);
 
   const scheduleAssignments: Assignment[] = schedule?.assignments ?? [];
   const weekDates = days.map(d => d.isoDate);
@@ -417,11 +405,12 @@ export function AvailabilityPage({ role }: Props) {
   async function handleApproveSchedule() {
     if (!schedule) return;
     setApproving(true);
-    setScheduleError(null);
+    setScheduleActionError(null);
     try {
-      setSchedule(await approveSchedule(schedule.id));
+      const updated = await approveSchedule(schedule.id);
+      queryClient.setQueryData(['weekly-schedule', weekStartDate], updated);
     } catch (e: unknown) {
-      setScheduleError((e as { message?: string })?.message ?? 'Approve failed');
+      setScheduleActionError((e as { message?: string })?.message ?? 'Approve failed');
     } finally {
       setApproving(false);
     }
@@ -429,14 +418,14 @@ export function AvailabilityPage({ role }: Props) {
 
   async function handleGenerateSchedule() {
     setGenerating(true);
-    setScheduleError(null);
+    setScheduleActionError(null);
     try {
       const s = await autoGenerateSchedule(weekStartDate);
-      setSchedule(s);
+      queryClient.setQueryData(['weekly-schedule', weekStartDate], s);
       setScheduleToast(`Schedule generated — ${s.assignments.length} assignment${s.assignments.length !== 1 ? 's' : ''} created`);
       setTimeout(() => setScheduleToast(''), 3000);
     } catch (e: unknown) {
-      setScheduleError((e as { message?: string })?.message ?? 'Generation failed');
+      setScheduleActionError((e as { message?: string })?.message ?? 'Generation failed');
     } finally {
       setGenerating(false);
     }
@@ -469,8 +458,9 @@ export function AvailabilityPage({ role }: Props) {
         const res = await submitAvailability({ employeeId, weekStartDate, entries });
         setExistingId(res.id);
       }
+      queryClient.invalidateQueries({ queryKey: ['employee-availability', employeeId, weekStartDate] });
       if (isManager) {
-        setWeeklyAvailability(await getWeeklyAvailability(weekStartDate));
+        queryClient.invalidateQueries({ queryKey: ['weekly-availability', weekStartDate] });
       }
       setSaved(true);
     } catch (e: unknown) {

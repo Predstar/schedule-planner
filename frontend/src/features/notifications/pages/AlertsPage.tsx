@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { Spinner } from '../../../shared/components/Spinner';
-import { getMyNotifications, markNotificationAsRead } from '../services/notifications.service';
+import { clearAllNotifications, getMyNotifications, markNotificationAsRead } from '../services/notifications.service';
 import type { Notification } from '../../../shared/types/api.types';
 import styles from './AlertsPage.module.css';
 
@@ -35,6 +36,24 @@ export function AlertsPage({ role }: AlertsPageProps) {
     queryFn: getMyNotifications,
   });
   const loadError = isError ? 'Failed to load alerts. Try again.' : null;
+  const [clearing, setClearing] = useState(false);
+
+  const realNotifications = notifications.filter((n) => !n.id.startsWith('availability-reminder-'));
+
+  async function handleClearAll() {
+    setClearing(true);
+    const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+    queryClient.setQueryData<Notification[]>(['notifications'], (prev) =>
+      prev?.filter((n) => n.id.startsWith('availability-reminder-')),
+    );
+    try {
+      await clearAllNotifications();
+    } catch {
+      queryClient.setQueryData(['notifications'], previous);
+    } finally {
+      setClearing(false);
+    }
+  }
 
   async function handleOpen(notification: Notification) {
     if (notification.read || notification.id.startsWith('availability-reminder-')) return;
@@ -54,8 +73,15 @@ export function AlertsPage({ role }: AlertsPageProps) {
       <div className={styles.page}>
 
         <div className={styles.header}>
-          <h1 className={styles.title}>Alerts</h1>
-          <p className={styles.subtitle}>Reminders and updates for you</p>
+          <div>
+            <h1 className={styles.title}>Alerts</h1>
+            <p className={styles.subtitle}>Reminders and updates for you</p>
+          </div>
+          {realNotifications.length > 0 && (
+            <button className={styles.clearAllBtn} onClick={handleClearAll} disabled={clearing}>
+              {clearing ? <Spinner size="small" inline /> : 'Clear all'}
+            </button>
+          )}
         </div>
 
         <div className={styles.list}>

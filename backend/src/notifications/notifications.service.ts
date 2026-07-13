@@ -41,6 +41,12 @@ export class NotificationsService {
     });
   }
 
+  async clearAll(authUser: AuthUserPayload): Promise<void> {
+    await this.prismaService.notification.deleteMany({
+      where: { userId: authUser.id },
+    });
+  }
+
   // ── Event hooks (called by other services) ──────────────────────────────
 
   async notifyScheduleDraftGenerated(managerUserIds: string[], weekStartDate: string): Promise<void> {

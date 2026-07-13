@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUserPayload } from '../auth/types/auth-user-payload.type';
@@ -21,5 +21,10 @@ export class NotificationsController {
     @CurrentUser() authUser: AuthUserPayload,
   ): Promise<void> {
     return this.notificationsService.markAsRead(notificationId, authUser);
+  }
+
+  @Delete()
+  clearAll(@CurrentUser() authUser: AuthUserPayload): Promise<void> {
+    return this.notificationsService.clearAll(authUser);
   }
 }

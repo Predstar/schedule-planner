@@ -77,7 +77,10 @@ export function EmployeeSwapsPage() {
       queryKey: ['my-role-schedule', monday],
       queryFn: () => getMyRoleSchedule(monday),
       enabled: Boolean(myEmployeeId),
-      retry: 1,
+      // A 404 here just means no schedule has been published for that week
+      // yet — expected for most of the 8 weeks we probe, not a real error.
+      retry: (failureCount: number, err: unknown) =>
+        (err as { statusCode?: number })?.statusCode !== 404 && failureCount < 1,
     })),
   });
 
@@ -93,9 +96,15 @@ export function EmployeeSwapsPage() {
     enabled: Boolean(myEmployeeId),
   });
 
+  const shiftsFailed = shiftQueries.some(
+    q => q.isError && (q.error as { statusCode?: number })?.statusCode !== 404,
+  );
   const loading = shiftQueries.some(q => q.isLoading) || myPostsQuery.isLoading || openPostsQuery.isLoading;
-  const loadError = shiftQueries.some(q => q.isError) || myPostsQuery.isError || openPostsQuery.isError
-    ? 'Failed to load shift swaps. Try again.'
+  const myRequestsError = shiftsFailed || myPostsQuery.isError
+    ? 'Failed to load your requests. Try again.'
+    : null;
+  const openShiftsError = openPostsQuery.isError
+    ? 'Failed to load open shifts. Try again.'
     : null;
 
   const myShifts = useMemo(() => {
@@ -216,8 +225,8 @@ export function EmployeeSwapsPage() {
             <div className={styles.list}>
               {loading ? (
                 <Spinner size="medium" />
-              ) : loadError ? (
-                <p className={styles.empty}>{loadError}</p>
+              ) : myRequestsError ? (
+                <p className={styles.empty}>{myRequestsError}</p>
               ) : myPosts.length === 0 ? (
                 <p className={styles.empty}>No swap requests yet.</p>
               ) : (
@@ -266,6 +275,8 @@ export function EmployeeSwapsPage() {
             <div className={styles.list}>
               {loading ? (
                 <Spinner size="medium" />
+              ) : openShiftsError ? (
+                <p className={styles.empty}>{openShiftsError}</p>
               ) : openPosts.length === 0 ? (
                 <p className={styles.empty}>No open shifts available right now.</p>
               ) : (

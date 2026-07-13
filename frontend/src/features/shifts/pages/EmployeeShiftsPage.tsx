@@ -85,12 +85,13 @@ export function EmployeeShiftsPage() {
     else setCalMonth(m => m + 1);
   }
 
+  const myAssignments = assignments.filter(a => a.employeeId === myEmployeeId);
+
   const assignmentsByDate: Record<string, Assignment[]> = {};
-  for (const a of assignments) {
+  for (const a of myAssignments) {
     (assignmentsByDate[a.date] ??= []).push(a);
   }
 
-  const myAssignments = assignments.filter(a => a.employeeId === myEmployeeId);
   const totalHours  = myAssignments.reduce((s, a) => s + calcHours(a.startTime, a.endTime), 0);
   const totalShifts = myAssignments.length;
 

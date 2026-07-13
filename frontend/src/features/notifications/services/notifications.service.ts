@@ -8,3 +8,7 @@ export async function getMyNotifications(): Promise<Notification[]> {
 export async function markNotificationAsRead(notificationId: string): Promise<void> {
   return apiClient.patch<void>(`/notifications/${notificationId}/read`);
 }
+
+export async function clearAllNotifications(): Promise<void> {
+  return apiClient.delete<void>('/notifications');
+}

@@ -12,6 +12,7 @@ import { EmployeeShiftsPage } from '../features/shifts/pages/EmployeeShiftsPage'
 import { EmployeeSwapsPage } from '../features/swaps/pages/EmployeeSwapsPage';
 import { ManagerSwapsPage } from '../features/swaps/pages/ManagerSwapsPage';
 import { AlertsPage } from '../features/notifications/pages/AlertsPage';
+import { RequireAuth } from '../shared/components/RequireAuth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,25 +35,25 @@ export function App() {
         <Route path="/confirm" element={<ConfirmEmailPage />} />
 
         {/* Manager routes */}
-        <Route path="/manager/schedule"     element={<ManagerDashboardPage />} />
-        <Route path="/manager/team"         element={<ManagerTeamPage />} />
-        <Route path="/manager/weekly"       element={<ManagerWeeklySchedulePage />} />
-        <Route path="/manager/availability" element={<AvailabilityPage role="manager" />} />
+        <Route path="/manager/schedule"     element={<RequireAuth><ManagerDashboardPage /></RequireAuth>} />
+        <Route path="/manager/team"         element={<RequireAuth><ManagerTeamPage /></RequireAuth>} />
+        <Route path="/manager/weekly"       element={<RequireAuth><ManagerWeeklySchedulePage /></RequireAuth>} />
+        <Route path="/manager/availability" element={<RequireAuth><AvailabilityPage role="manager" /></RequireAuth>} />
 
-        <Route path="/manager/requests" element={<ManagerSwapsPage />} />
-        <Route path="/manager/alerts"   element={<AlertsPage role="manager" />} />
+        <Route path="/manager/requests" element={<RequireAuth><ManagerSwapsPage /></RequireAuth>} />
+        <Route path="/manager/alerts"   element={<RequireAuth><AlertsPage role="manager" /></RequireAuth>} />
 
         {/* Placeholder manager routes */}
-        <Route path="/manager/profile"  element={<ProfilePage role="manager" />} />
+        <Route path="/manager/profile"  element={<RequireAuth><ProfilePage role="manager" /></RequireAuth>} />
 
         {/* Employee routes */}
-        <Route path="/employee/availability" element={<AvailabilityPage role="employee" />} />
+        <Route path="/employee/availability" element={<RequireAuth><AvailabilityPage role="employee" /></RequireAuth>} />
 
         {/* Placeholder employee routes */}
-        <Route path="/employee/shifts"   element={<EmployeeShiftsPage />} />
-        <Route path="/employee/swaps"    element={<EmployeeSwapsPage />} />
-        <Route path="/employee/alerts"   element={<AlertsPage role="employee" />} />
-        <Route path="/employee/profile"  element={<ProfilePage role="employee" />} />
+        <Route path="/employee/shifts"   element={<RequireAuth><EmployeeShiftsPage /></RequireAuth>} />
+        <Route path="/employee/swaps"    element={<RequireAuth><EmployeeSwapsPage /></RequireAuth>} />
+        <Route path="/employee/alerts"   element={<RequireAuth><AlertsPage role="employee" /></RequireAuth>} />
+        <Route path="/employee/profile"  element={<RequireAuth><ProfilePage role="employee" /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
     </QueryClientProvider>

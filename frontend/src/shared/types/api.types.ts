@@ -26,6 +26,7 @@ export interface ApiError {
 export interface LoginRequest {
   email: string;
   password: string;
+  force?: boolean;
 }
 
 export interface RegisterRequest {

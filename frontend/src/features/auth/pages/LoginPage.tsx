@@ -12,15 +12,16 @@ export function LoginPage() {
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const [showForceLogin, setShowForceLogin] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent]   = useState(false);
 
-  async function handleLogin() {
+  async function handleLogin(force = false) {
     setError('');
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     setLoading(true);
     try {
-      const res = await login({ email, password });
+      const res = await login({ email, password, force });
       if (res.user.systemRole === 'EMPLOYEE') {
         navigate('/employee/shifts');
       } else {
@@ -30,12 +31,13 @@ export function LoginPage() {
       const err = e as { code?: string };
       if (err?.code === 'EMAIL_NOT_CONFIRMED') {
         setError('Please confirm your email before logging in. Check your inbox for the confirmation link.');
+        setPassword('');
       } else if (err?.code === 'ALREADY_LOGGED_IN') {
-        setError('This account is already logged in on another device.');
+        setShowForceLogin(true);
       } else {
         setError('Invalid email or password. Please try again.');
+        setPassword('');
       }
-      setPassword('');
     } finally {
       setLoading(false);
     }
@@ -133,7 +135,7 @@ export function LoginPage() {
         </div>
 
         {/* Submit */}
-        <button className={styles.loginBtn} onClick={handleLogin} disabled={loading}>
+        <button className={styles.loginBtn} onClick={() => handleLogin()} disabled={loading}>
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
 
@@ -186,6 +188,27 @@ export function LoginPage() {
                 <button className={styles.cancelBtn} onClick={() => setShowForgot(false)}>Cancel</button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Already logged in elsewhere — confirm force login */}
+      {showForceLogin && (
+        <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) setShowForceLogin(false); }}>
+          <div className={styles.sheet}>
+            <div className={styles.sheetHandle} />
+            <h3 className={styles.sheetTitle}>Already logged in elsewhere</h3>
+            <p className={styles.sheetSub}>
+              This account is signed in on another device. Continuing here will log that device out.
+            </p>
+            <button
+              className={styles.loginBtn}
+              disabled={loading}
+              onClick={async () => { setShowForceLogin(false); await handleLogin(true); }}
+            >
+              {loading ? 'Signing in…' : 'Log out other device & sign in'}
+            </button>
+            <button className={styles.cancelBtn} onClick={() => setShowForceLogin(false)}>Cancel</button>
           </div>
         </div>
       )}

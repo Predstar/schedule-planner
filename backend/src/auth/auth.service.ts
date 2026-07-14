@@ -107,7 +107,10 @@ export class AuthService {
       throw new AppException(403, 'EMAIL_NOT_CONFIRMED', 'Please confirm your email before logging in');
     }
 
-    if (user.currentSessionId && user.sessionExpiresAt && user.sessionExpiresAt.getTime() > Date.now()) {
+    const hasActiveSession =
+      user.currentSessionId && user.sessionExpiresAt && user.sessionExpiresAt.getTime() > Date.now();
+
+    if (hasActiveSession && !dto.force) {
       throw new AppException(
         409,
         'ALREADY_LOGGED_IN',

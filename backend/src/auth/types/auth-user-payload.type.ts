@@ -12,4 +12,5 @@ export interface JwtPayload {
   email: string;
   systemRole: SystemRole;
   employeeId: string | null;
+  sessionId: string;
 }

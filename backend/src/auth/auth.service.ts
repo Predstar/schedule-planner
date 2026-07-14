@@ -106,11 +106,18 @@ export class AuthService {
       throw new AppException(403, 'EMAIL_NOT_CONFIRMED', 'Please confirm your email before logging in');
     }
 
+    const sessionId = randomBytes(16).toString('hex');
+    await this.prismaService.user.update({
+      where: { id: user.id },
+      data: { currentSessionId: sessionId },
+    });
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       systemRole: user.systemRole,
       employeeId: user.employeeId,
+      sessionId,
     };
 
     return {

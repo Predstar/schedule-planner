@@ -76,6 +76,7 @@ model User {
   active                     Boolean        @default(true)
   confirmationToken          String?        @unique @map("confirmation_token")
   confirmationTokenExpiresAt DateTime?      @map("confirmation_token_expires_at")
+  currentSessionId           String?        @map("current_session_id")
   createdAt                  DateTime       @default(now()) @map("created_at")
   updatedAt                  DateTime       @updatedAt @map("updated_at")
   notifications              Notification[]

@@ -15,6 +15,7 @@ import { MailService } from './mail.service';
 import type { AuthUserPayload, JwtPayload } from './types/auth-user-payload.type';
 
 const CONFIRMATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -106,10 +107,19 @@ export class AuthService {
       throw new AppException(403, 'EMAIL_NOT_CONFIRMED', 'Please confirm your email before logging in');
     }
 
+    if (user.currentSessionId && user.sessionExpiresAt && user.sessionExpiresAt.getTime() > Date.now()) {
+      throw new AppException(
+        409,
+        'ALREADY_LOGGED_IN',
+        'This account is already logged in on another device',
+      );
+    }
+
     const sessionId = randomBytes(16).toString('hex');
+    const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
     await this.prismaService.user.update({
       where: { id: user.id },
-      data: { currentSessionId: sessionId },
+      data: { currentSessionId: sessionId, sessionExpiresAt },
     });
 
     const payload: JwtPayload = {
@@ -130,6 +140,13 @@ export class AuthService {
         employeeId: user.employeeId ?? null,
       },
     };
+  }
+
+  async logout(userId: string): Promise<void> {
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { currentSessionId: null, sessionExpiresAt: null },
+    });
   }
 
   async getCurrentUser(user: AuthUserPayload): Promise<CurrentUserResponseDto> {

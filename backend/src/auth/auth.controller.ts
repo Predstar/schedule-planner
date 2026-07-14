@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -37,5 +37,12 @@ export class AuthController {
   @Get('me')
   getMe(@CurrentUser() user: AuthUserPayload): Promise<CurrentUserResponseDto> {
     return this.authService.getCurrentUser(user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  @Post('logout')
+  logout(@CurrentUser() user: AuthUserPayload): Promise<void> {
+    return this.authService.logout(user.id);
   }
 }

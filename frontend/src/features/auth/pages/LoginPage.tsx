@@ -30,6 +30,8 @@ export function LoginPage() {
       const err = e as { code?: string };
       if (err?.code === 'EMAIL_NOT_CONFIRMED') {
         setError('Please confirm your email before logging in. Check your inbox for the confirmation link.');
+      } else if (err?.code === 'ALREADY_LOGGED_IN') {
+        setError('This account is already logged in on another device.');
       } else {
         setError('Invalid email or password. Please try again.');
       }

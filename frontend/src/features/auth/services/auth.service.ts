@@ -35,7 +35,12 @@ export function getStoredUser(): LoginResponse['user'] | null {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-export function logout(): void {
+export async function logout(): Promise<void> {
+  try {
+    await apiClient.post('/auth/logout', undefined);
+  } catch {
+    // ignore — clear local session regardless of network/API state
+  }
   clearToken();
   localStorage.removeItem(USER_KEY);
 }

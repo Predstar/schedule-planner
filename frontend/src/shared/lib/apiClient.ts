@@ -38,6 +38,15 @@ async function request<T>(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      clearToken();
+      localStorage.removeItem('currentUser');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+
     throw error;
   }
 

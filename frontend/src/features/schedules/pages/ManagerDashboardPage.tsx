@@ -197,7 +197,11 @@ export function ManagerDashboardPage() {
           <Spinner size="medium" />
         ) : (
         <div className={styles.statGrid}>
-          <div className={styles.statCard}>
+          <div
+            className={styles.statCard}
+            onClick={() => navigate('/manager/availability-tracking')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={styles.statValue}>
               {statsError ? '—' : availabilityCount !== null
                 ? <>{availabilityCount}<span className={styles.statFrac}>/{totalEmployees}</span></>

@@ -4,6 +4,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ConfirmEmailPage } from '../features/auth/pages/ConfirmEmailPage';
 import { ManagerDashboardPage } from '../features/schedules/pages/ManagerDashboardPage';
+import { ManagerAvailabilityTrackingPage } from '../features/schedules/pages/ManagerAvailabilityTrackingPage';
 import { ManagerWeeklySchedulePage } from '../features/schedules/pages/ManagerWeeklySchedulePage';
 import { ManagerTeamPage } from '../features/employees/pages/ManagerTeamPage';
 import { AvailabilityPage } from '../features/availability/pages/AvailabilityPage';
@@ -36,6 +37,7 @@ export function App() {
 
         {/* Manager routes */}
         <Route path="/manager/schedule"     element={<RequireAuth><ManagerDashboardPage /></RequireAuth>} />
+        <Route path="/manager/availability-tracking" element={<RequireAuth><ManagerAvailabilityTrackingPage /></RequireAuth>} />
         <Route path="/manager/team"         element={<RequireAuth><ManagerTeamPage /></RequireAuth>} />
         <Route path="/manager/weekly"       element={<RequireAuth><ManagerWeeklySchedulePage /></RequireAuth>} />
         <Route path="/manager/availability" element={<RequireAuth><AvailabilityPage role="manager" /></RequireAuth>} />

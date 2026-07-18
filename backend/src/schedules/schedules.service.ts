@@ -871,8 +871,8 @@ export class SchedulesService {
       requiredCount: number;
       requiredCountByDayOffset?: Partial<Record<number, number>>;
     }[] = [
-      { role: 'WAITER',    startTime: '10:00', endTime: '17:00', requiredCount: 3 }, // morning
-      { role: 'WAITER',    startTime: '17:00', endTime: '23:00', requiredCount: 6 }, // evening
+      { role: 'WAITER',    startTime: '10:00', endTime: '17:00', requiredCount: 3, requiredCountByDayOffset: { 5: 2, 6: 2 } }, // morning — Sat/Sun need 2
+      { role: 'WAITER',    startTime: '17:00', endTime: '23:00', requiredCount: 5, requiredCountByDayOffset: { 4: 6, 5: 6, 6: 4 } }, // evening — Fri/Sat need 6, Sun needs 4
       { role: 'RUNNER',    startTime: '12:00', endTime: '16:00', requiredCount: 3 }, // morning
       { role: 'RUNNER',    startTime: '18:00', endTime: '22:00', requiredCount: 4, requiredCountByDayOffset: { 4: 5, 5: 5 } }, // evening — Fri/Sat need 5
       { role: 'BARTENDER', startTime: '10:00', endTime: '17:00', requiredCount: 1 }, // morning

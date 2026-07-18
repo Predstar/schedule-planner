@@ -5,6 +5,7 @@ import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { StatusBar } from '../../../shared/components/StatusBar';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { Spinner } from '../../../shared/components/Spinner';
+import { AddShiftModal } from '../../../shared/components/AddShiftModal';
 import { getStoredUser } from '../../auth/services/auth.service';
 import { listEmployees, getEmployee } from '../../employees/services/employees.service';
 import {
@@ -168,6 +169,8 @@ export function AvailabilityPage({ role }: Props) {
   const weekStartDate = toIso(monday);
   const weekEnd = new Date(monday);
   weekEnd.setDate(monday.getDate() + 6);
+  const [showAddShift, setShowAddShift] = useState(false);
+  const todayIso = toIso(new Date());
 
   function prevWeek() { setMonday((d) => addDays(d, -7)); }
   function nextWeek() { setMonday((d) => addDays(d, 7)); }
@@ -540,6 +543,17 @@ export function AvailabilityPage({ role }: Props) {
         </div>
 
         {isManager && (
+          <div className={styles.addShiftRow}>
+            <button className={styles.addBtn} onClick={() => setShowAddShift(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Shift
+            </button>
+          </div>
+        )}
+
+        {isManager && (
           <div className={styles.tabRow}>
             <button
               className={[styles.tabBtn, activeTab === 'availability' ? styles.tabBtnActive : ''].join(' ')}
@@ -823,6 +837,20 @@ export function AvailabilityPage({ role }: Props) {
       )}
 
       <BottomNav role={role} />
+
+      {showAddShift && (
+        <AddShiftModal
+          employees={employees}
+          defaultDate={weekStartDate}
+          todayIso={todayIso}
+          onClose={() => setShowAddShift(false)}
+          onSaved={(shiftWeekStart) => {
+            queryClient.invalidateQueries({ queryKey: ['weekly-schedule', shiftWeekStart] });
+            queryClient.invalidateQueries({ queryKey: ['shifts'] });
+            setShowAddShift(false);
+          }}
+        />
+      )}
     </PhoneShell>
   );
 }

@@ -28,6 +28,15 @@
   margin-top: 3px;
 }
 
+.addShiftRow { display:flex; justify-content:flex-end; margin-bottom:14px; }
+.addBtn {
+  display:flex; align-items:center; gap:6px; padding:10px 14px;
+  background:var(--accent); color:#FAF6F0; border:none; border-radius:12px;
+  font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;
+  box-shadow:0 4px 14px var(--accent-shadow); flex-shrink:0; transition:background 0.15s;
+}
+.addBtn:hover { background:var(--accent-light); }
+
 .weekNav {
   display: flex;
   align-items: center;

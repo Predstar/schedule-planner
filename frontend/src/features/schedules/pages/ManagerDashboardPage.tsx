@@ -4,19 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { Spinner } from '../../../shared/components/Spinner';
-import { getWeeklySchedule, createDraftSchedule, addAssignment } from '../services/schedules.service';
+import { AddShiftModal } from '../../../shared/components/AddShiftModal';
+import { getWeeklySchedule } from '../services/schedules.service';
 import { getWeeklyAvailability } from '../../availability/services/availability.service';
 import { listEmployees } from '../../employees/services/employees.service';
-import { listShifts, createShift } from '../../shifts/services/shifts.service';
+import { listShifts } from '../../shifts/services/shifts.service';
 import { getPendingSwapRequests } from '../../swaps/services/swaps.service';
-import type { Assignment, EmployeeRole, SwapRequest } from '../../../shared/types/api.types';
+import type { Assignment, SwapRequest } from '../../../shared/types/api.types';
 import styles from './ManagerDashboardPage.module.css';
 
 const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS_LONG  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const ROLES: EmployeeRole[] = ['WAITER', 'RUNNER', 'BARTENDER'];
-const START_TIMES = ['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
-const END_TIMES   = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'];
 
 type ShiftColor = 'blue' | 'purple' | 'orange' | 'green';
 const SHIFT_COLORS: Record<ShiftColor, { bg: string; border: string; roleColor: string }> = {
@@ -70,12 +68,6 @@ export function ManagerDashboardPage() {
 
   const [showModal, setShowModal]       = useState(false);
   const [shiftDate, setShiftDate]       = useState('');
-  const [shiftStart, setShiftStart]     = useState('09:00');
-  const [shiftEnd,   setShiftEnd]       = useState('17:00');
-  const [shiftRole,    setShiftRole]    = useState<EmployeeRole>('WAITER');
-  const [shiftEmployeeId, setShiftEmployeeId] = useState('');
-  const [savingShift, setSavingShift]   = useState(false);
-  const [shiftError,  setShiftError]    = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -135,41 +127,13 @@ export function ManagerDashboardPage() {
     const d = selectedDay ?? today.getDate();
     const candidate = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     setShiftDate(candidate < todayIso ? todayIso : candidate);
-    setShiftError(null);
     setShowModal(true);
   }
 
-  async function handleAddShift() {
-    if (!shiftDate || shiftDate < todayIso || shiftEnd <= shiftStart) return;
-    setSavingShift(true);
-    setShiftError(null);
-    try {
-      const shift = await createShift({
-        date: shiftDate,
-        startTime: shiftStart,
-        endTime: shiftEnd,
-        employeeRole: shiftRole,
-        requiredCount: 1,
-      });
-
-      const shiftWeekStart = getWeekStart(new Date(`${shiftDate}T00:00:00`));
-
-      if (shiftEmployeeId) {
-        let schedule = await getWeeklySchedule(shiftWeekStart);
-        if (!schedule) {
-          schedule = await createDraftSchedule(shiftWeekStart);
-        }
-        await addAssignment(schedule.id, { shiftId: shift.id, employeeId: shiftEmployeeId });
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ['weekly-schedule', shiftWeekStart] });
-      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
-      setShowModal(false);
-    } catch (e: unknown) {
-      setShiftError((e as { message?: string })?.message ?? 'Failed to add shift. Try again.');
-    } finally {
-      setSavingShift(false);
-    }
+  async function handleShiftSaved(shiftWeekStart: string) {
+    await queryClient.invalidateQueries({ queryKey: ['weekly-schedule', shiftWeekStart] });
+    await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+    setShowModal(false);
   }
 
   function handleDayClick(day: number) {
@@ -211,7 +175,6 @@ export function ManagerDashboardPage() {
   const swapRequestLabel = String(pendingSwaps.length);
 
   const employees = empsQuery.data ?? [];
-  const roleEmployees = employees.filter(e => e.employeeRole === shiftRole);
 
   return (
     <PhoneShell>
@@ -382,73 +345,14 @@ export function ManagerDashboardPage() {
 
       <BottomNav role="manager" />
 
-      {/* Add Shift Modal */}
       {showModal && (
-        <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className={styles.modalSheet}>
-            <div className={styles.handle} />
-            <h2 className={styles.modalTitle}>Add Shift Manually</h2>
-
-            <div className={styles.formRow}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Date</label>
-                <input className={styles.fieldInput} type="date" min={todayIso} value={shiftDate} onChange={e => setShiftDate(e.target.value)} />
-              </div>
-            </div>
-
-            <div className={[styles.formRow, styles.formRow2].join(' ')}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Start</label>
-                <div className={styles.selectWrap}>
-                  <select className={styles.fieldSelect} value={shiftStart} onChange={e => setShiftStart(e.target.value)}>
-                    {START_TIMES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>End</label>
-                <div className={styles.selectWrap}>
-                  <select className={styles.fieldSelect} value={shiftEnd} onChange={e => setShiftEnd(e.target.value)}>
-                    {END_TIMES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Role</label>
-                <div className={styles.selectWrap}>
-                  <select
-                    className={styles.fieldSelect}
-                    value={shiftRole}
-                    onChange={e => { setShiftRole(e.target.value as EmployeeRole); setShiftEmployeeId(''); }}
-                  >
-                    {ROLES.map(r => <option key={r} value={r}>{r.charAt(0)}{r.slice(1).toLowerCase()}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Assign Employee</label>
-                <div className={styles.selectWrap}>
-                  <select className={styles.fieldSelect} value={shiftEmployeeId} onChange={e => setShiftEmployeeId(e.target.value)}>
-                    <option value="">Leave open...</option>
-                    {roleEmployees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {shiftError && <div className={styles.formError}>{shiftError}</div>}
-
-            <button className={styles.saveBtn} onClick={handleAddShift} disabled={savingShift || !shiftDate || shiftDate < todayIso || shiftEnd <= shiftStart}>
-              {savingShift ? 'Adding…' : 'Add Shift'}
-            </button>
-          </div>
-        </div>
+        <AddShiftModal
+          employees={employees}
+          defaultDate={shiftDate}
+          todayIso={todayIso}
+          onClose={() => setShowModal(false)}
+          onSaved={handleShiftSaved}
+        />
       )}
     </PhoneShell>
   );

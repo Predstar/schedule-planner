@@ -217,7 +217,7 @@ export function AvailabilityPage({ role }: Props) {
   const employeeId = isManager ? (selectedEmployeeId || null) : (storedUser?.employeeId ?? null);
   const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
   const submittedCount = new Set(weeklyAvailability.map((availability) => availability.employeeId)).size;
-  const canEdit = Boolean(employeeId) && !deadlinePassed;
+  const canEdit = Boolean(employeeId) && (isManager || !deadlinePassed);
 
   const myEmployeeQuery = useQuery({
     queryKey: ['employee', storedUser?.employeeId],
@@ -605,7 +605,7 @@ export function AvailabilityPage({ role }: Props) {
                 <span className={styles.capacityText}>{shiftSlots[1].label} — {shiftSlots[1].startTime} – {shiftSlots[1].endTime}</span>
               </div>
               {isManager && (
-                <div className={styles.capacityText}>Managers can review availability here, but only employees can submit or update it.</div>
+                <div className={styles.capacityText}>Managers can edit any employee's availability here, including after their submission deadline has passed.</div>
               )}
             </div>
 

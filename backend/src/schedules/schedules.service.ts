@@ -175,14 +175,16 @@ const MAX_BACKTRACK_STEPS = 20_000;
  * eligible and available gets the slot before any part-timer, subject to
  * their own weeklyHourLimit still capping how much they can be assigned.
  *
- * Round-robin: within the same employment-type group, whoever has been
- * assigned fewer slots so far *this run* goes first — so everyone eligible
- * gets a turn before anyone gets a second, third, etc. Without this, an
- * employee with little/no historical hours (e.g. newly added) would win
- * every fairness tiebreak and could sweep most of the week's slots before
- * their in-run hours accumulate enough to lose a tie.
+ * Round-robin: within the same employment-type group, candidates are ranked
+ * first by fewest slots assigned *today* (so nobody gets a same-day double
+ * shift while someone else eligible for that day still has none), then by
+ * fewest slots assigned so far *this run* overall — so everyone eligible
+ * gets a turn before anyone gets a second, third, etc. Without the weekly
+ * part, an employee with little/no historical hours (e.g. newly added)
+ * would win every fairness tiebreak and could sweep most of the week's
+ * slots before their in-run hours accumulate enough to lose a tie.
  *
- * Fairness: employees tied on slot count are ranked by the lowest ratio of
+ * Fairness: employees tied on slot counts are ranked by the lowest ratio of
  * (hours worked historically + so far this week) to their own
  * weeklyHourLimit — so a part-timer near their cap doesn't get skipped over
  * just because their raw hour count is lower than another part-timer's.
@@ -239,11 +241,21 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
       const bFullTime = b.employmentType === 'FULL_TIME' ? 0 : 1;
       if (aFullTime !== bFullTime) return aFullTime - bFullTime;
 
-      // Round-robin: whoever has fewer slots assigned so far this run goes
-      // first, so everyone eligible gets a turn before anyone gets a second
-      // — otherwise a person who starts with a much lower historical-hours
-      // ratio (e.g. a brand-new employee at 0) can sweep the whole week
-      // before their in-run hours catch up enough to lose a fairness tie.
+      // Daily round-robin: whoever has fewer slots assigned TODAY goes first,
+      // so nobody gets a same-day double shift (e.g. morning + evening) while
+      // another eligible person for that same day still has zero shifts that
+      // day — even if that other person already has more shifts on earlier
+      // days this week.
+      const aToday = dayShifts.get(`${a.id}:${slot.date}`)?.length ?? 0;
+      const bToday = dayShifts.get(`${b.id}:${slot.date}`)?.length ?? 0;
+      if (aToday !== bToday) return aToday - bToday;
+
+      // Weekly round-robin: whoever has fewer slots assigned so far this run
+      // goes first, so everyone eligible gets a turn before anyone gets a
+      // second across the week — otherwise a person who starts with a much
+      // lower historical-hours ratio (e.g. a brand-new employee at 0) can
+      // sweep most of the week before their in-run hours catch up enough to
+      // lose a fairness tie.
       const aCount = slotCounts.get(a.id) ?? 0;
       const bCount = slotCounts.get(b.id) ?? 0;
       if (aCount !== bCount) return aCount - bCount;

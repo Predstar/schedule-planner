@@ -447,8 +447,6 @@ export function AvailabilityPage({ role }: Props) {
       return result;
     });
 
-    if (entries.length === 0) return;
-
     setSaving(true);
     setError(null);
     try {
@@ -792,15 +790,17 @@ export function AvailabilityPage({ role }: Props) {
             </div>
           )}
           <button
-            className={[styles.submitBtn, (totalSelected === 0 || !canEdit) ? styles.submitBtnDisabled : ''].join(' ')}
+            className={[styles.submitBtn, !canEdit ? styles.submitBtnDisabled : ''].join(' ')}
             onClick={handleSubmit}
-            disabled={totalSelected === 0 || !canEdit || saving}
+            disabled={!canEdit || saving}
           >
             {saving
               ? 'Saving…'
-              : existingId
-                ? `Update Availability (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})`
-                : `Submit Availability${totalSelected > 0 ? ` (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})` : ''}`}
+              : totalSelected === 0
+                ? (existingId ? 'Update — Mark Unavailable' : 'Submit — Unavailable This Week')
+                : existingId
+                  ? `Update Availability (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})`
+                  : `Submit Availability (${totalSelected} slot${totalSelected !== 1 ? 's' : ''})`}
           </button>
         </div>
       )}

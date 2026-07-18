@@ -42,6 +42,7 @@ type EmployeeRecord = {
   id: string;
   employeeRole: string;
   weeklyHourLimit: number;
+  employmentType?: string;
   firstName?: string;
   lastName?: string;
 };
@@ -126,6 +127,7 @@ export type SolverEmployee = {
   id: string;
   employeeRole: string;
   weeklyHourLimit: number;
+  employmentType: string;
   historicalMinutes: number; // minutes worked in the lookback window, before this week
   availability: Array<{ date: string; startTime: string; endTime: string; available: boolean; preferred: boolean }>;
 };
@@ -168,10 +170,15 @@ const MAX_BACKTRACK_STEPS = 20_000;
 /**
  * Assigns employees to shift slots, maximizing the number of filled slots.
  *
- * Fairness: among employees eligible for a slot, prefers whoever has the
+ * Priority: among employees eligible for a slot, FULL_TIME employees are
+ * always ranked ahead of PART_TIME/MINI_JOB employees — a full-timer who is
+ * eligible and available gets the slot before any part-timer, subject to
+ * their own weeklyHourLimit still capping how much they can be assigned.
+ *
+ * Fairness: within the same employment-type group, prefers whoever has the
  * lowest ratio of (hours worked historically + so far this week) to their
  * own weeklyHourLimit — so a part-timer near their cap doesn't get skipped
- * over just because their raw hour count is lower than a full-timer's.
+ * over just because their raw hour count is lower than another part-timer's.
  * Ties are broken in favor of employees who marked the slot `preferred`.
  *
  * Backtracking: slots are attempted in scarcity order (fewest eligible
@@ -220,6 +227,10 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
   ): SolverEmployee[] {
     const eligible = employees.filter(e => isEligible(e, slot, assignedMinutes, dayShifts));
     return eligible.sort((a, b) => {
+      const aFullTime = a.employmentType === 'FULL_TIME' ? 0 : 1;
+      const bFullTime = b.employmentType === 'FULL_TIME' ? 0 : 1;
+      if (aFullTime !== bFullTime) return aFullTime - bFullTime;
+
       const scoreDiff = fairnessScore(a, assignedMinutes) - fairnessScore(b, assignedMinutes);
       if (Math.abs(scoreDiff) > 1e-9) return scoreDiff;
 
@@ -864,6 +875,7 @@ export class SchedulesService {
         id: emp.id,
         employeeRole: emp.employeeRole,
         weeklyHourLimit: emp.weeklyHourLimit,
+        employmentType: emp.employmentType ?? 'PART_TIME',
         historicalMinutes: historicalMinutesByEmployee.get(emp.id) ?? 0,
         availability: entries,
       };

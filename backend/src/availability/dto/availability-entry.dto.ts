@@ -1,5 +1,4 @@
 import {
-  ArrayNotEmpty,
   IsArray,
   IsBoolean,
   Matches,
@@ -51,7 +50,6 @@ export class AvailabilityEntryDto {
 
 export class AvailabilityEntriesDto {
   @IsArray()
-  @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => AvailabilityEntryDto)
   entries!: AvailabilityEntryDto[];

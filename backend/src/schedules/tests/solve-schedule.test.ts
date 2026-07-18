@@ -6,6 +6,7 @@ function employee(overrides: Partial<SolverEmployee> = {}): SolverEmployee {
     id: 'emp-1',
     employeeRole: 'WAITER',
     weeklyHourLimit: 40,
+    employmentType: 'FULL_TIME',
     historicalMinutes: 0,
     availability: [],
     ...overrides,
@@ -54,19 +55,43 @@ describe('solveSchedule', () => {
     expect(result.assignments).toEqual([{ slot: slot(), employeeId: 'fresh' }]);
   });
 
-  it('normalizes fairness by weeklyHourLimit so a part-timer near their cap loses to a full-timer with more raw hours left', () => {
-    // Part-timer: 18/20h worked → 90% utilized, very little room left.
-    const partTimer = employee({
-      id: 'part-timer',
-      weeklyHourLimit: 20,
-      historicalMinutes: 18 * 60,
+  it('normalizes fairness by weeklyHourLimit within the same employment-type tier', () => {
+    // Both full-time, so the priority tier is tied — falls through to fairness.
+    // near-cap: 38/40h worked → 95% utilized, very little room left.
+    const nearCap = employee({
+      id: 'near-cap',
+      weeklyHourLimit: 40,
+      historicalMinutes: 38 * 60,
       availability: [availableAllDay('2026-04-06')],
     });
-    // Full-timer: 30/40h worked → 75% utilized, more relative room left.
-    const fullTimer = employee({
-      id: 'full-timer',
+    // more-room: 30/40h worked → 75% utilized, more relative room left.
+    const moreRoom = employee({
+      id: 'more-room',
       weeklyHourLimit: 40,
       historicalMinutes: 30 * 60,
+      availability: [availableAllDay('2026-04-06')],
+    });
+
+    const result = solveSchedule([nearCap, moreRoom], [slot()]);
+
+    expect(result.assignments).toEqual([{ slot: slot(), employeeId: 'more-room' }]);
+  });
+
+  it('prioritizes a FULL_TIME employee over a PART_TIME employee even when the part-timer has a better fairness score', () => {
+    // Part-timer has plenty of room left (fairness-favored), but should still
+    // lose to an eligible full-timer under the employment-type priority rule.
+    const partTimer = employee({
+      id: 'part-timer',
+      employmentType: 'PART_TIME',
+      weeklyHourLimit: 20,
+      historicalMinutes: 0,
+      availability: [availableAllDay('2026-04-06')],
+    });
+    const fullTimer = employee({
+      id: 'full-timer',
+      employmentType: 'FULL_TIME',
+      weeklyHourLimit: 40,
+      historicalMinutes: 35 * 60, // near their cap — worse fairness score
       availability: [availableAllDay('2026-04-06')],
     });
 

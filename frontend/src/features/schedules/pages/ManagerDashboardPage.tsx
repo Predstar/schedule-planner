@@ -1,21 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PhoneShell } from '../../../shared/components/PhoneShell';
 import { BottomNav } from '../../../shared/components/BottomNav';
 import { Spinner } from '../../../shared/components/Spinner';
-import { getWeeklySchedule } from '../services/schedules.service';
+import { getWeeklySchedule, createDraftSchedule, addAssignment } from '../services/schedules.service';
 import { getWeeklyAvailability } from '../../availability/services/availability.service';
 import { listEmployees } from '../../employees/services/employees.service';
-import { listShifts } from '../../shifts/services/shifts.service';
+import { listShifts, createShift } from '../../shifts/services/shifts.service';
 import { getPendingSwapRequests } from '../../swaps/services/swaps.service';
-import type { Assignment, SwapRequest } from '../../../shared/types/api.types';
+import type { Assignment, EmployeeRole, SwapRequest } from '../../../shared/types/api.types';
 import styles from './ManagerDashboardPage.module.css';
 
 const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS_LONG  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const SECTIONS   = ['floor','bar','kitchen','delivery'];
-const ROLES      = ['any','waiter','runner','chef','bartender'];
+const ROLES: EmployeeRole[] = ['WAITER', 'RUNNER', 'BARTENDER'];
 const START_TIMES = ['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
 const END_TIMES   = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'];
 
@@ -73,9 +72,12 @@ export function ManagerDashboardPage() {
   const [shiftDate, setShiftDate]       = useState('');
   const [shiftStart, setShiftStart]     = useState('09:00');
   const [shiftEnd,   setShiftEnd]       = useState('17:00');
-  const [shiftSection, setShiftSection] = useState('floor');
-  const [shiftRole,    setShiftRole]    = useState('any');
-  const [shiftEmployee, setShiftEmployee] = useState('Leave open...');
+  const [shiftRole,    setShiftRole]    = useState<EmployeeRole>('WAITER');
+  const [shiftEmployeeId, setShiftEmployeeId] = useState('');
+  const [savingShift, setSavingShift]   = useState(false);
+  const [shiftError,  setShiftError]    = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
 
   // Live countdown tick
   const [, setTick] = useState(0);
@@ -133,7 +135,41 @@ export function ManagerDashboardPage() {
     const d = selectedDay ?? today.getDate();
     const candidate = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     setShiftDate(candidate < todayIso ? todayIso : candidate);
+    setShiftError(null);
     setShowModal(true);
+  }
+
+  async function handleAddShift() {
+    if (!shiftDate || shiftDate < todayIso || shiftEnd <= shiftStart) return;
+    setSavingShift(true);
+    setShiftError(null);
+    try {
+      const shift = await createShift({
+        date: shiftDate,
+        startTime: shiftStart,
+        endTime: shiftEnd,
+        employeeRole: shiftRole,
+        requiredCount: 1,
+      });
+
+      const shiftWeekStart = getWeekStart(new Date(`${shiftDate}T00:00:00`));
+
+      if (shiftEmployeeId) {
+        let schedule = await getWeeklySchedule(shiftWeekStart);
+        if (!schedule) {
+          schedule = await createDraftSchedule(shiftWeekStart);
+        }
+        await addAssignment(schedule.id, { shiftId: shift.id, employeeId: shiftEmployeeId });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['weekly-schedule', shiftWeekStart] });
+      await queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      setShowModal(false);
+    } catch (e: unknown) {
+      setShiftError((e as { message?: string })?.message ?? 'Failed to add shift. Try again.');
+    } finally {
+      setSavingShift(false);
+    }
   }
 
   function handleDayClick(day: number) {
@@ -174,7 +210,8 @@ export function ManagerDashboardPage() {
   const openShiftsLabel  = openShiftCount !== null ? String(openShiftCount) : '…';
   const swapRequestLabel = String(pendingSwaps.length);
 
-  const EMPLOYEES = ['Leave open...', ...Array.from(new Set(assignments.map(a => a.employeeName)))];
+  const employees = empsQuery.data ?? [];
+  const roleEmployees = employees.filter(e => e.employeeRole === shiftRole);
 
   return (
     <PhoneShell>
@@ -378,20 +415,16 @@ export function ManagerDashboardPage() {
               </div>
             </div>
 
-            <div className={[styles.formRow, styles.formRow2].join(' ')}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Section</label>
-                <div className={styles.selectWrap}>
-                  <select className={styles.fieldSelect} value={shiftSection} onChange={e => setShiftSection(e.target.value)}>
-                    {SECTIONS.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
+            <div className={styles.formRow}>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Role</label>
                 <div className={styles.selectWrap}>
-                  <select className={styles.fieldSelect} value={shiftRole} onChange={e => setShiftRole(e.target.value)}>
-                    {ROLES.map(r => <option key={r}>{r}</option>)}
+                  <select
+                    className={styles.fieldSelect}
+                    value={shiftRole}
+                    onChange={e => { setShiftRole(e.target.value as EmployeeRole); setShiftEmployeeId(''); }}
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{r.charAt(0)}{r.slice(1).toLowerCase()}</option>)}
                   </select>
                 </div>
               </div>
@@ -401,15 +434,18 @@ export function ManagerDashboardPage() {
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Assign Employee</label>
                 <div className={styles.selectWrap}>
-                  <select className={styles.fieldSelect} value={shiftEmployee} onChange={e => setShiftEmployee(e.target.value)}>
-                    {EMPLOYEES.map(e => <option key={e}>{e}</option>)}
+                  <select className={styles.fieldSelect} value={shiftEmployeeId} onChange={e => setShiftEmployeeId(e.target.value)}>
+                    <option value="">Leave open...</option>
+                    {roleEmployees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
                   </select>
                 </div>
               </div>
             </div>
 
-            <button className={styles.saveBtn} onClick={() => { if (shiftDate && shiftDate >= todayIso) setShowModal(false); }}>
-              Add Shift
+            {shiftError && <div className={styles.formError}>{shiftError}</div>}
+
+            <button className={styles.saveBtn} onClick={handleAddShift} disabled={savingShift || !shiftDate || shiftDate < todayIso || shiftEnd <= shiftStart}>
+              {savingShift ? 'Adding…' : 'Add Shift'}
             </button>
           </div>
         </div>

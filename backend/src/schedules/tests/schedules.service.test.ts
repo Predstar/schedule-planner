@@ -370,35 +370,51 @@ describe('SchedulesService', () => {
     throw new Error('Expected EMPLOYEE_ROLE_MISMATCH');
   });
 
-  it('rejects unavailable employees with 409 EMPLOYEE_UNAVAILABLE', async () => {
+  it('allows a manager to manually assign an employee to a shift outside their submitted availability', async () => {
+    // Manual assignment is manager/admin-only (route-level RolesGuard), so it
+    // intentionally does not check submitted availability — e.g. covering an
+    // event where a shift starts earlier than the employee's usual window.
     prismaService.schedule.findUnique = vi.fn().mockResolvedValue(draftSchedule());
     prismaService.shift.findUnique = vi.fn().mockResolvedValue(waiterShift());
     prismaService.employee.findUnique = vi.fn().mockResolvedValue(waiterEmployee());
-    prismaService.availability.findUnique = vi.fn().mockResolvedValue(
-      submittedAvailability({
-        entries: [
-          {
-            date: new Date('2026-04-07T00:00:00.000Z'),
-            startTime: '12:00',
-            endTime: '13:00',
-            available: true,
-            preferred: false,
-          },
-        ],
+    prismaService.scheduleAssignment.findMany = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    prismaService.$transaction = vi.fn().mockImplementation(async (callback: Function) =>
+      callback({
+        scheduleAssignment: {
+          create: vi.fn().mockResolvedValue({
+            id: 'assignment-1',
+            scheduleId: 'schedule-1',
+            shiftId: 'shift-1',
+            employeeId: 'employee-1',
+          }),
+        },
+        schedule: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue(
+            draftSchedule({
+              assignments: [
+                {
+                  id: 'assignment-1',
+                  shiftId: 'shift-1',
+                  employeeId: 'employee-1',
+                  shift: waiterShift({ id: 'shift-1' }),
+                  employee: { firstName: 'Alice', lastName: 'Smith' },
+                },
+              ],
+            }),
+          ),
+        },
       }),
     );
 
-    try {
-      await schedulesService.addAssignment('schedule-1', {
+    await expect(
+      schedulesService.addAssignment('schedule-1', {
         shiftId: 'shift-1',
         employeeId: 'employee-1',
-      });
-    } catch (error) {
-      expect((error as AppException).code).toBe('EMPLOYEE_UNAVAILABLE');
-      return;
-    }
-
-    throw new Error('Expected EMPLOYEE_UNAVAILABLE');
+      }),
+    ).resolves.toMatchObject({ id: 'schedule-1' });
   });
 
   it('rejects overlapping shifts with 409 SHIFT_OVERLAP', async () => {
@@ -465,7 +481,7 @@ describe('SchedulesService', () => {
     throw new Error('Expected WEEKLY_HOUR_LIMIT_EXCEEDED');
   });
 
-  it('allows a valid assignment when all five validation rules pass', async () => {
+  it('allows a valid assignment when all validation rules pass', async () => {
     prismaService.schedule.findUnique = vi.fn().mockResolvedValue(draftSchedule());
     prismaService.shift.findUnique = vi.fn().mockResolvedValue(waiterShift());
     prismaService.employee.findUnique = vi.fn().mockResolvedValue(waiterEmployee());

@@ -445,7 +445,6 @@ export class SchedulesService {
 
     await this.ensureScheduleEditable(schedule);
     this.ensureEmployeeRoleMatchesShift(employee, shift);
-    await this.ensureEmployeeAvailableForShift(employee.id, schedule.weekStartDate, shift);
     await this.ensureNoShiftOverlap(employee.id, schedule.id, shift);
     await this.ensureWeeklyHourLimitNotExceeded(employee, schedule.id, shift);
 
@@ -499,7 +498,6 @@ export class SchedulesService {
 
     await this.ensureScheduleEditable(schedule);
     this.ensureEmployeeRoleMatchesShift(employee, shift);
-    await this.ensureEmployeeAvailableForShift(employee.id, schedule.weekStartDate, shift);
     await this.ensureNoShiftOverlap(employee.id, schedule.id, shift, assignment.id);
     await this.ensureWeeklyHourLimitNotExceeded(employee, schedule.id, shift, assignment.id);
 
@@ -689,36 +687,6 @@ export class SchedulesService {
   private ensureEmployeeRoleMatchesShift(employee: EmployeeRecord, shift: ShiftRecord): void {
     if (employee.employeeRole !== shift.employeeRole) {
       throw new AppException(409, 'EMPLOYEE_ROLE_MISMATCH', 'Employee role mismatch');
-    }
-  }
-
-  private async ensureEmployeeAvailableForShift(
-    employeeId: string,
-    scheduleWeekStartDate: Date,
-    shift: ShiftRecord,
-  ): Promise<void> {
-    const availability = await this.prismaService.availability.findUnique({
-      where: {
-        employeeId_weekStartDate: {
-          employeeId,
-          weekStartDate: scheduleWeekStartDate,
-        },
-      },
-      include: { entries: true },
-    });
-
-    const shiftDate = formatIsoDate(shift.date);
-    const hasCoveringEntry = availability?.status === 'SUBMITTED'
-      && availability.entries.some(
-        (entry: { date: Date; startTime: string; endTime: string; available: boolean }) =>
-          formatIsoDate(entry.date) === shiftDate
-          && entry.available
-          && entry.startTime <= shift.startTime
-          && entry.endTime >= shift.endTime,
-      );
-
-    if (!hasCoveringEntry) {
-      throw new AppException(409, 'EMPLOYEE_UNAVAILABLE', 'Employee unavailable');
     }
   }
 

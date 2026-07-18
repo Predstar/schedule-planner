@@ -77,6 +77,35 @@ describe('solveSchedule', () => {
     expect(result.assignments).toEqual([{ slot: slot(), employeeId: 'more-room' }]);
   });
 
+  it('round-robins slots so a brand-new employee with 0 historical hours does not sweep every slot ahead of peers with real history', () => {
+    // Reproduces the real bug: a newly added employee (0 historical minutes)
+    // has an unbeatable fairness ratio and would otherwise win every single
+    // slot's tiebreak for the whole week, starving equally-eligible peers who
+    // have some accumulated hours (and thus a nonzero ratio).
+    const brandNew = employee({ id: 'brand-new', weeklyHourLimit: 20, historicalMinutes: 0 });
+    const veteranA = employee({ id: 'veteran-a', weeklyHourLimit: 20, historicalMinutes: 14 * 60 });
+    const veteranB = employee({ id: 'veteran-b', weeklyHourLimit: 20, historicalMinutes: 18 * 60 });
+
+    const days = ['2026-04-06', '2026-04-07', '2026-04-08'];
+    const daySlots = days.map(date => slot({ date }));
+    for (const emp of [brandNew, veteranA, veteranB]) {
+      emp.availability = days.map(date => availableAllDay(date));
+    }
+
+    const result = solveSchedule([brandNew, veteranA, veteranB], daySlots);
+    const countsByEmployee = new Map<string, number>();
+    for (const a of result.assignments) {
+      countsByEmployee.set(a.employeeId, (countsByEmployee.get(a.employeeId) ?? 0) + 1);
+    }
+
+    // With 3 employees and 3 slots (one per day, non-overlapping days), a fair
+    // round-robin distribution gives each employee exactly 1 slot — nobody
+    // should get 2+ while another gets 0.
+    expect(countsByEmployee.get('brand-new')).toBe(1);
+    expect(countsByEmployee.get('veteran-a')).toBe(1);
+    expect(countsByEmployee.get('veteran-b')).toBe(1);
+  });
+
   it('prioritizes a FULL_TIME employee over a PART_TIME employee even when the part-timer has a better fairness score', () => {
     // Part-timer has plenty of room left (fairness-favored), but should still
     // lose to an eligible full-timer under the employment-type priority rule.

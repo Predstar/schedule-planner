@@ -175,10 +175,17 @@ const MAX_BACKTRACK_STEPS = 20_000;
  * eligible and available gets the slot before any part-timer, subject to
  * their own weeklyHourLimit still capping how much they can be assigned.
  *
- * Fairness: within the same employment-type group, prefers whoever has the
- * lowest ratio of (hours worked historically + so far this week) to their
- * own weeklyHourLimit — so a part-timer near their cap doesn't get skipped
- * over just because their raw hour count is lower than another part-timer's.
+ * Round-robin: within the same employment-type group, whoever has been
+ * assigned fewer slots so far *this run* goes first — so everyone eligible
+ * gets a turn before anyone gets a second, third, etc. Without this, an
+ * employee with little/no historical hours (e.g. newly added) would win
+ * every fairness tiebreak and could sweep most of the week's slots before
+ * their in-run hours accumulate enough to lose a tie.
+ *
+ * Fairness: employees tied on slot count are ranked by the lowest ratio of
+ * (hours worked historically + so far this week) to their own
+ * weeklyHourLimit — so a part-timer near their cap doesn't get skipped over
+ * just because their raw hour count is lower than another part-timer's.
  * Ties are broken in favor of employees who marked the slot `preferred`.
  *
  * Backtracking: slots are attempted in scarcity order (fewest eligible
@@ -224,12 +231,22 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
     slot: SolverSlot,
     assignedMinutes: Map<string, number>,
     dayShifts: Map<string, Array<{ startTime: string; endTime: string }>>,
+    slotCounts: Map<string, number>,
   ): SolverEmployee[] {
     const eligible = employees.filter(e => isEligible(e, slot, assignedMinutes, dayShifts));
     return eligible.sort((a, b) => {
       const aFullTime = a.employmentType === 'FULL_TIME' ? 0 : 1;
       const bFullTime = b.employmentType === 'FULL_TIME' ? 0 : 1;
       if (aFullTime !== bFullTime) return aFullTime - bFullTime;
+
+      // Round-robin: whoever has fewer slots assigned so far this run goes
+      // first, so everyone eligible gets a turn before anyone gets a second
+      // — otherwise a person who starts with a much lower historical-hours
+      // ratio (e.g. a brand-new employee at 0) can sweep the whole week
+      // before their in-run hours catch up enough to lose a fairness tie.
+      const aCount = slotCounts.get(a.id) ?? 0;
+      const bCount = slotCounts.get(b.id) ?? 0;
+      if (aCount !== bCount) return aCount - bCount;
 
       const scoreDiff = fairnessScore(a, assignedMinutes) - fairnessScore(b, assignedMinutes);
       if (Math.abs(scoreDiff) > 1e-9) return scoreDiff;
@@ -245,9 +262,10 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
   // the search and doesn't need to be exact after assignments accumulate.
   const initialAssignedMinutes = new Map<string, number>(employees.map(e => [e.id, 0]));
   const initialDayShifts = new Map<string, Array<{ startTime: string; endTime: string }>>();
+  const initialSlotCounts = new Map<string, number>(employees.map(e => [e.id, 0]));
   const orderedSlots = [...slots].sort((a, b) => {
-    const aCount = rankCandidates(a, initialAssignedMinutes, initialDayShifts).length;
-    const bCount = rankCandidates(b, initialAssignedMinutes, initialDayShifts).length;
+    const aCount = rankCandidates(a, initialAssignedMinutes, initialDayShifts, initialSlotCounts).length;
+    const bCount = rankCandidates(b, initialAssignedMinutes, initialDayShifts, initialSlotCounts).length;
     return aCount - bCount;
   });
 
@@ -258,6 +276,7 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
     index: number,
     assignedMinutes: Map<string, number>,
     dayShifts: Map<string, Array<{ startTime: string; endTime: string }>>,
+    slotCounts: Map<string, number>,
     current: SolverAssignment[],
   ): void {
     if (current.length > bestAssignments.length) {
@@ -268,17 +287,19 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
     steps += 1;
 
     const slot = orderedSlots[index];
-    const candidates = rankCandidates(slot, assignedMinutes, dayShifts);
+    const candidates = rankCandidates(slot, assignedMinutes, dayShifts, slotCounts);
 
-    // Try assigning each candidate (best-fairness first), then recurse.
+    // Try assigning each candidate (round-robin + fairness order), then recurse.
     for (const candidate of candidates) {
       const dayKey = `${candidate.id}:${slot.date}`;
       const nextAssignedMinutes = new Map(assignedMinutes);
       nextAssignedMinutes.set(candidate.id, (assignedMinutes.get(candidate.id) ?? 0) + slotMinutes(slot));
       const nextDayShifts = new Map(dayShifts);
       nextDayShifts.set(dayKey, [...(dayShifts.get(dayKey) ?? []), { startTime: slot.startTime, endTime: slot.endTime }]);
+      const nextSlotCounts = new Map(slotCounts);
+      nextSlotCounts.set(candidate.id, (slotCounts.get(candidate.id) ?? 0) + 1);
 
-      search(index + 1, nextAssignedMinutes, nextDayShifts, [...current, { slot, employeeId: candidate.id }]);
+      search(index + 1, nextAssignedMinutes, nextDayShifts, nextSlotCounts, [...current, { slot, employeeId: candidate.id }]);
 
       if (steps >= MAX_BACKTRACK_STEPS) return;
     }
@@ -286,10 +307,10 @@ export function solveSchedule(employees: SolverEmployee[], slots: SolverSlot[]):
     // Also try leaving this slot unfilled, in case skipping it allows more
     // total slots to be filled later (e.g. it frees up the only employee
     // who could cover a scarcer slot).
-    search(index + 1, assignedMinutes, dayShifts, current);
+    search(index + 1, assignedMinutes, dayShifts, slotCounts, current);
   }
 
-  search(0, initialAssignedMinutes, initialDayShifts, []);
+  search(0, initialAssignedMinutes, initialDayShifts, initialSlotCounts, []);
 
   const filledSlotKeys = new Set(bestAssignments.map(a => `${a.slot.date}|${a.slot.role}|${a.slot.startTime}|${a.slot.endTime}|${a.slot.seat ?? 0}`));
   const unfilled = orderedSlots.filter(s => !filledSlotKeys.has(`${s.date}|${s.role}|${s.startTime}|${s.endTime}|${s.seat ?? 0}`));
@@ -828,11 +849,20 @@ export class SchedulesService {
     // Shift templates: role → {startTime, endTime, requiredCount}. requiredCount
     // is the target headcount for that shift (upper bound, where a range was
     // specified) — the solver tries to fill up to that many slots per shift.
-    const shiftTemplates: { role: string; startTime: string; endTime: string; requiredCount: number }[] = [
+    // requiredCountByDayOffset overrides requiredCount for specific days of
+    // the week (0 = Monday … 6 = Sunday, relative to weekStart), when a shift
+    // needs more/fewer seats than its usual weekday count.
+    const shiftTemplates: {
+      role: string;
+      startTime: string;
+      endTime: string;
+      requiredCount: number;
+      requiredCountByDayOffset?: Partial<Record<number, number>>;
+    }[] = [
       { role: 'WAITER',    startTime: '10:00', endTime: '17:00', requiredCount: 3 }, // morning
       { role: 'WAITER',    startTime: '17:00', endTime: '23:00', requiredCount: 6 }, // evening
       { role: 'RUNNER',    startTime: '12:00', endTime: '16:00', requiredCount: 3 }, // morning
-      { role: 'RUNNER',    startTime: '18:00', endTime: '20:00', requiredCount: 4 }, // evening
+      { role: 'RUNNER',    startTime: '18:00', endTime: '22:00', requiredCount: 4, requiredCountByDayOffset: { 4: 5, 5: 5 } }, // evening — Fri/Sat need 5
       { role: 'BARTENDER', startTime: '10:00', endTime: '17:00', requiredCount: 1 }, // morning
       { role: 'BARTENDER', startTime: '16:30', endTime: '23:00', requiredCount: 3 }, // evening
     ];
@@ -845,7 +875,8 @@ export class SchedulesService {
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const dateStr = formatIsoDate(addDays(weekStart, dayOffset));
       for (const template of shiftTemplates) {
-        for (let seat = 0; seat < template.requiredCount; seat++) {
+        const requiredCount = template.requiredCountByDayOffset?.[dayOffset] ?? template.requiredCount;
+        for (let seat = 0; seat < requiredCount; seat++) {
           slots.push({
             date: dateStr,
             role: template.role,

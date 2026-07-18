@@ -39,7 +39,7 @@ const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','
 // submitted availability window fully covers it.
 const ROLE_SHIFT_SLOTS: Record<string, { label: string; startTime: string; endTime: string }[]> = {
   WAITER:    [{ label: 'Morning Shift', startTime: '10:00', endTime: '17:00' }, { label: 'Evening Shift', startTime: '17:00', endTime: '23:00' }],
-  RUNNER:    [{ label: 'Morning Shift', startTime: '12:00', endTime: '16:00' }, { label: 'Evening Shift', startTime: '18:00', endTime: '20:00' }],
+  RUNNER:    [{ label: 'Morning Shift', startTime: '12:00', endTime: '16:00' }, { label: 'Evening Shift', startTime: '18:00', endTime: '22:00' }],
   BARTENDER: [{ label: 'Morning Shift', startTime: '10:00', endTime: '17:00' }, { label: 'Evening Shift', startTime: '16:30', endTime: '23:00' }],
 };
 const DEFAULT_SHIFT_SLOTS = ROLE_SHIFT_SLOTS.WAITER;

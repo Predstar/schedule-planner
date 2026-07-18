@@ -131,12 +131,29 @@ function applyAvailabilityToDays(
   });
 }
 
-/** Hours until Friday 23:59 Berlin time (deadline = 2 days before Monday). */
+const BERLIN_TIMEZONE = 'Europe/Berlin';
+
+/** Current wall-clock time in Berlin, as a UTC-equivalent Date for arithmetic. */
+function nowInBerlin(): Date {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BERLIN_TIMEZONE,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const get = (type: string) => Number(parts.find(p => p.type === type)?.value);
+  return new Date(Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')));
+}
+
+/**
+ * Hours until the availability deadline: start of day, 2 days before `monday`
+ * (Berlin time) — must match the backend's ensureEmployeeDeadline exactly,
+ * since that's the source of truth for whether a submission is accepted.
+ */
 function hoursUntilDeadline(monday: Date): number {
-  const deadline = new Date(monday);
-  deadline.setDate(monday.getDate() - 2); // Saturday
-  deadline.setHours(23, 59, 0, 0);
-  return Math.max(0, Math.floor((deadline.getTime() - Date.now()) / 3600000));
+  const deadline = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate() - 2));
+  const diffMs = deadline.getTime() - nowInBerlin().getTime();
+  return Math.max(0, Math.floor(diffMs / 3600000));
 }
 
 function addDays(d: Date, n: number): Date {

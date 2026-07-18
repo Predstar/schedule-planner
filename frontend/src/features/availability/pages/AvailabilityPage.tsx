@@ -163,6 +163,15 @@ function addDays(d: Date, n: number): Date {
   return result;
 }
 
+/** ISO-8601 week number for the week containing `date`. */
+function getIsoWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
 export function AvailabilityPage({ role }: Props) {
   const isManager = role === 'manager';
   const [monday, setMonday] = useState<Date>(() => getMondayOf(new Date()));
@@ -291,22 +300,20 @@ export function AvailabilityPage({ role }: Props) {
   const scheduleRows = Object.entries(empMap);
 
   function exportSchedulePDF() {
-    // Group assignments by shift slot (role + time) instead of by employee —
-    // rows are time bands, columns are days, cells list who's working.
-    // Each role gets its own page.
-    type SlotRow = { role: string; startTime: string; endTime: string; days: Record<string, string[]> };
+    // Single combined table across all roles — rows are time bands (grouped
+    // purely by startTime/endTime, so whatever actual shift times exist that
+    // week show up, including custom manager-added ones), columns are days,
+    // cells stack the names working that time band. No role grouping/labels.
+    type SlotRow = { startTime: string; endTime: string; days: Record<string, string[]> };
     const slotMap: Record<string, SlotRow> = {};
     for (const a of scheduleAssignments) {
-      const key = `${a.employeeRole}|${a.startTime}|${a.endTime}`;
+      const key = `${a.startTime}|${a.endTime}`;
       if (!slotMap[key]) {
-        slotMap[key] = { role: a.employeeRole, startTime: a.startTime, endTime: a.endTime, days: {} };
+        slotMap[key] = { startTime: a.startTime, endTime: a.endTime, days: {} };
       }
       (slotMap[key].days[a.date] ??= []).push(a.employeeName);
     }
-    const allSlotRows = Object.values(slotMap).sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-    const ROLE_ORDER = ['WAITER', 'RUNNER', 'BARTENDER'];
-    const rolesPresent = ROLE_ORDER.filter(role => allSlotRows.some(r => r.role === role));
+    const rows = Object.values(slotMap).sort((a, b) => a.startTime.localeCompare(b.startTime));
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -314,18 +321,18 @@ export function AvailabilityPage({ role }: Props) {
     const margin = 10;
     const headerOrange: [number, number, number] = [237, 125, 49];
     const headerRowOrange: [number, number, number] = [244, 176, 132];
-    const nameColW = 32;
+    const nameColW = 28;
     const dayColW = (pageW - margin * 2 - nameColW) / 7;
     const lineH = 4;
     const rowPadding = 3;
 
-    function drawPageHeader(roleLabel: string): number {
+    function drawPageHeader(): number {
       doc.setFillColor(...headerOrange);
       doc.rect(margin, 10, pageW - margin * 2, 10, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(13);
       doc.setTextColor(255, 255, 255);
-      doc.text(`Authentikka Mitte Service Plan — ${roleLabel} — ${weekLabel}`, pageW / 2, 17, { align: 'center' });
+      doc.text(`Authentikka Mitte Service Plan — KW${getIsoWeekNumber(monday)} (${weekLabel})`, pageW / 2, 17, { align: 'center' });
 
       let y = 24;
       doc.setFillColor(...headerRowOrange);
@@ -349,77 +356,59 @@ export function AvailabilityPage({ role }: Props) {
       doc.text('Authentikka Shift Management · Confidential', pageW / 2, pageH - 6, { align: 'center' });
     }
 
-    function drawRoleRows(roleLabel: string, rows: SlotRow[], startY: number) {
-      let y = startY;
+    let y = drawPageHeader();
 
-      if (rows.length === 0) {
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120, 120, 120);
-        doc.text(`No ${roleLabel.toLowerCase()} shifts for this week.`, pageW / 2, y + 14, { align: 'center' });
-        return;
+    if (rows.length === 0) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120, 120, 120);
+      doc.text('No shifts scheduled for this week.', pageW / 2, y + 14, { align: 'center' });
+    }
+
+    rows.forEach((row, idx) => {
+      const maxNames = Math.max(1, ...weekDates.map(d => (row.days[d] ?? []).length));
+      const rowHeight = rowPadding * 2 + maxNames * lineH;
+      const textY = y + rowPadding + lineH - 1.2; // baseline for the first line, vertically centered
+
+      if (y + rowHeight > pageH - 14) {
+        doc.addPage();
+        y = drawPageHeader();
       }
 
-      rows.forEach((row, idx) => {
-        const maxNames = Math.max(1, ...weekDates.map(d => (row.days[d] ?? []).length));
-        const rowHeight = rowPadding * 2 + maxNames * lineH;
-        const textY = y + rowPadding + lineH - 1.2; // baseline for the first line, vertically centered
+      if (idx % 2 === 0) {
+        doc.setFillColor(253, 245, 235);
+        doc.rect(margin, y, pageW - margin * 2, rowHeight, 'F');
+      }
 
-        if (y + rowHeight > pageH - 14) {
-          doc.addPage();
-          y = drawPageHeader(roleLabel);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(90, 45, 10);
+      doc.text(`${row.startTime} - ${row.endTime}`, margin + 2, textY);
+
+      doc.setFontSize(7.5);
+      weekDates.forEach((date, i) => {
+        const names = row.days[date] ?? [];
+        const x = margin + nameColW + dayColW * i + dayColW / 2;
+        if (names.length === 0) {
+          doc.setTextColor(215, 205, 195);
+          doc.setFont('helvetica', 'normal');
+          doc.text('—', x, textY, { align: 'center' });
+        } else {
+          doc.setTextColor(28, 16, 7);
+          doc.setFont('helvetica', 'normal');
+          names.forEach((name, ni) => doc.text(name, x, textY + ni * lineH, { align: 'center' }));
         }
-
-        if (idx % 2 === 0) {
-          doc.setFillColor(253, 245, 235);
-          doc.rect(margin, y, pageW - margin * 2, rowHeight, 'F');
-        }
-
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(90, 45, 10);
-        doc.text(roleLabel, margin + 2, textY);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(150, 110, 70);
-        doc.text(`${row.startTime}–${row.endTime}`, margin + 2 + doc.getTextWidth(roleLabel) + 2, textY);
-
-        doc.setFontSize(7.5);
-        weekDates.forEach((date, i) => {
-          const names = row.days[date] ?? [];
-          const x = margin + nameColW + dayColW * i + dayColW / 2;
-          if (names.length === 0) {
-            doc.setTextColor(215, 205, 195);
-            doc.setFont('helvetica', 'normal');
-            doc.text('—', x, textY, { align: 'center' });
-          } else {
-            doc.setTextColor(28, 16, 7);
-            doc.setFont('helvetica', 'normal');
-            names.forEach((name, ni) => doc.text(name, x, textY + ni * lineH, { align: 'center' }));
-          }
-        });
-
-        doc.setDrawColor(235, 215, 195);
-        doc.setLineWidth(0.15);
-        doc.line(margin, y + rowHeight, pageW - margin, y + rowHeight);
-        y += rowHeight;
       });
-    }
 
-    if (rolesPresent.length === 0) {
-      const y = drawPageHeader('All Roles');
-      drawRoleRows('Shift', [], y);
-      drawFooter();
-    } else {
-      rolesPresent.forEach((role, idx) => {
-        if (idx > 0) doc.addPage();
-        const roleLabel = `${role.charAt(0)}${role.slice(1).toLowerCase()}`;
-        const y = drawPageHeader(roleLabel);
-        drawRoleRows(roleLabel, allSlotRows.filter(r => r.role === role), y);
-        drawFooter();
-      });
-    }
+      doc.setDrawColor(235, 215, 195);
+      doc.setLineWidth(0.15);
+      doc.line(margin, y + rowHeight, pageW - margin, y + rowHeight);
+      y += rowHeight;
+    });
 
-    doc.save(`Authentikka_Schedule_${weekStartDate}.pdf`);
+    drawFooter();
+
+    doc.save(`Authentikka_Schedule_KW${getIsoWeekNumber(monday)}_${weekStartDate}.pdf`);
   }
 
   async function handleApproveSchedule() {
